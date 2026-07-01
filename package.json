@@ -1,0 +1,15 @@
+{
+  "name": "reverse-marketplace",
+  "version": "1.0.0",
+  "description": "AI Reverse Marketplace Root",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && node server.js",
+    "start:frontend": "cd frontend && npm run dev"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
