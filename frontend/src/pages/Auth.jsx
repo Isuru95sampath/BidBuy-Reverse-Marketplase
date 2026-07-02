@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { LogIn, UserPlus } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const Auth = ({ setLoggedUser, mode = 'login' }) => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const Auth = ({ setLoggedUser, mode = 'login' }) => {
         if (role === 'seller') {
           payload.shop_name = shopName || `${username}'s Shop`;
         }
-        await axios.post('http://localhost:5080/api/auth/register', payload);
+        await axios.post(`${API_BASE_URL}/auth/register`, payload);
         
         setSuccess('Registration successful! Please login.');
         setTimeout(() => {
@@ -34,7 +35,7 @@ const Auth = ({ setLoggedUser, mode = 'login' }) => {
         }, 1500);
       } else {
         // Login API Call
-        const response = await axios.post('http://localhost:5080/api/auth/login', {
+        const response = await axios.post(`${API_BASE_URL}/auth/login`, {
           username,
           password
         });

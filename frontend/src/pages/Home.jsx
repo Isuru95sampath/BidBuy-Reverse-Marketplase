@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FileText, Gavel, CheckCircle, ChevronDown, ChevronUp, Star, Award, ShieldCheck, Zap } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const FAQ_DATA = [
   {
@@ -64,7 +65,7 @@ const Home = ({ user }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('http://localhost:5080/api/stats/dashboard');
+        const response = await axios.get(`${API_BASE_URL}/stats/dashboard`);
         setStats(response.data);
       } catch (err) {
         console.error('Failed to load stats', err);

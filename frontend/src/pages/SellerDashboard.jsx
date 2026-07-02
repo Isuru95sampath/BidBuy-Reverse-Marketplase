@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Filter, Gavel, DollarSign, Calendar, Sparkles, X, HeartHandshake, Star, TrendingUp, BarChart2, CheckCircle, AlertTriangle } from 'lucide-react';
 import ChatWindow from '../components/ChatWindow';
 import { CountdownTimer } from './CustomerDashboard';
+import { API_BASE_URL } from '../config';
 
 const CATEGORY_KEYS = [
   'Electronics',
@@ -51,7 +52,7 @@ const SellerDashboard = ({ user }) => {
 
   const fetchSellerRating = async () => {
     try {
-      const response = await axios.get(`http://localhost:5080/api/seller/${user.id}/rating`);
+      const response = await axios.get(`${API_BASE_URL}/seller/${user.id}/rating`);
       setRatingInfo({
         avg_rating: response.data.avg_rating,
         rating_count: response.data.rating_count
@@ -65,7 +66,7 @@ const SellerDashboard = ({ user }) => {
     setLoadingHistory(true);
     setShowHistoryModal(true);
     try {
-      const response = await axios.get(`http://localhost:5080/api/seller/${user.id}/rating`);
+      const response = await axios.get(`${API_BASE_URL}/seller/${user.id}/rating`);
       setHistoryReviews(response.data.reviews || []);
     } catch (err) {
       console.error(err);
@@ -79,7 +80,7 @@ const SellerDashboard = ({ user }) => {
   const fetchMarketFeed = async () => {
     setLoadingFeed(true);
     try {
-      const response = await axios.get('http://localhost:5080/api/requests');
+      const response = await axios.get(`${API_BASE_URL}/requests`);
       setRequests(response.data);
     } catch (err) {
       console.error(err);
@@ -92,7 +93,7 @@ const SellerDashboard = ({ user }) => {
   const fetchMyBids = async () => {
     setLoadingBids(true);
     try {
-      const response = await axios.get(`http://localhost:5080/api/seller/${user.id}/bids`);
+      const response = await axios.get(`${API_BASE_URL}/seller/${user.id}/bids`);
       setMyBids(response.data);
     } catch (err) {
       console.error(err);
@@ -130,7 +131,7 @@ const SellerDashboard = ({ user }) => {
     e.preventDefault();
     setSubmittingBid(true);
     try {
-      await axios.post(`http://localhost:5080/api/requests/${selectedReq.id}/bids`, {
+      await axios.post(`${API_BASE_URL}/requests/${selectedReq.id}/bids`, {
         seller_id: user.id,
         price: parseFloat(bidPrice),
         delivery_days: parseInt(deliveryDays),

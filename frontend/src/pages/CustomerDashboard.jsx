@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, X, Tag, Gavel, DollarSign, Clock, MessageSquare, AlertCircle, Star } from 'lucide-react';
 import ChatWindow from '../components/ChatWindow';
+import { API_BASE_URL } from '../config';
 
 const CATEGORY_IMAGES = {
   'Electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -132,12 +133,10 @@ const CustomerDashboard = ({ user }) => {
       );
     }
     return <div className="rating-stars" style={{ display: 'inline-flex', gap: '0.15rem' }}>{stars}</div>;
-  };
-
-  const handleReviewSubmit = async (e) => {
+  };  const handleReviewSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5080/api/reviews', {
+      await axios.post(`${API_BASE_URL}/reviews`, {
         request_id: reviewRequestId,
         seller_id: reviewSellerId,
         customer_id: user.id,
@@ -163,7 +162,7 @@ const CustomerDashboard = ({ user }) => {
     setLoadingHistory(true);
     setShowHistoryModal(true);
     try {
-      const response = await axios.get(`http://localhost:5080/api/seller/${sellerId}/rating`);
+      const response = await axios.get(`${API_BASE_URL}/seller/${sellerId}/rating`);
       setHistoryReviews(response.data.reviews || []);
     } catch (err) {
       console.error(err);
@@ -176,7 +175,7 @@ const CustomerDashboard = ({ user }) => {
   // Fetch customer's requests
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`http://localhost:5080/api/requests/customer/${user.id}`);
+      const response = await axios.get(`${API_BASE_URL}/requests/customer/${user.id}`);
       setRequests(response.data);
       setError('');
     } catch (err) {
@@ -196,7 +195,7 @@ const CustomerDashboard = ({ user }) => {
     setSelectedRequest(req);
     setLoadingBids(true);
     try {
-      const response = await axios.get(`http://localhost:5080/api/requests/${req.id}/bids`);
+      const response = await axios.get(`${API_BASE_URL}/requests/${req.id}/bids`);
       setBids(response.data);
     } catch (err) {
       console.error(err);
@@ -224,7 +223,7 @@ const CustomerDashboard = ({ user }) => {
     const finalImage = customImage || CATEGORY_IMAGES[category] || CATEGORY_IMAGES['Other / General'];
 
     try {
-      await axios.post('http://localhost:5080/api/requests', {
+      await axios.post(`${API_BASE_URL}/requests`, {
         customer_id: user.id,
         title,
         description,
@@ -255,7 +254,7 @@ const CustomerDashboard = ({ user }) => {
     if (!window.confirm('Are you sure you want to accept this seller\'s offer? This will close your request.')) return;
     
     try {
-      await axios.post(`http://localhost:5080/api/bids/${bidId}/accept`);
+      await axios.post(`${API_BASE_URL}/bids/${bidId}/accept`);
       
       const acceptedBid = bids.find(b => b.id === bidId);
       if (acceptedBid) {
@@ -270,7 +269,7 @@ const CustomerDashboard = ({ user }) => {
       console.error(err);
       alert('Failed to accept bid.');
     }
-  };
+  };};
 
   // Filter requests
   const filteredRequests = requests.filter(req => {

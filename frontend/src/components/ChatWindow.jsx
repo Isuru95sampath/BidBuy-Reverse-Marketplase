@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Send, X, MessageCircle, Image, Paperclip } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const ChatWindow = ({ request, sender, receiverId, receiverName, onClose }) => {
   const [messages, setMessages] = useState([]);
@@ -12,7 +13,7 @@ const ChatWindow = ({ request, sender, receiverId, receiverName, onClose }) => {
   // Fetch messages
   const fetchMessages = async () => {
     try {
-      const response = await axios.get('http://localhost:5080/api/messages/chat', {
+      const response = await axios.get(`${API_BASE_URL}/messages/chat`, {
         params: {
           request_id: request.id,
           user1_id: sender.id,
@@ -106,7 +107,7 @@ const ChatWindow = ({ request, sender, receiverId, receiverName, onClose }) => {
     setText(''); // Clear input instantly
 
     try {
-      await axios.post('http://localhost:5080/api/messages', {
+      await axios.post(`${API_BASE_URL}/messages`, {
         request_id: request.id,
         sender_id: sender.id,
         receiver_id: receiverId,
@@ -129,7 +130,7 @@ const ChatWindow = ({ request, sender, receiverId, receiverName, onClose }) => {
       reader.onloadend = async () => {
         const base64String = reader.result;
         try {
-          await axios.post('http://localhost:5080/api/messages', {
+          await axios.post(`${API_BASE_URL}/messages`, {
             request_id: request.id,
             sender_id: sender.id,
             receiver_id: receiverId,
