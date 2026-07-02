@@ -269,7 +269,7 @@ const CustomerDashboard = ({ user }) => {
       console.error(err);
       alert('Failed to accept bid.');
     }
-  };};
+  };
 
   // Filter requests
   const filteredRequests = requests.filter(req => {
