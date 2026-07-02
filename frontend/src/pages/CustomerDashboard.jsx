@@ -85,6 +85,7 @@ const CustomerDashboard = ({ user }) => {
   const [bids, setBids] = useState([]);
   const [loadingBids, setLoadingBids] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
+  const [bidsSortOption, setBidsSortOption] = useState('price'); // 'price', 'delivery', 'rating'
 
   // Review Modal States
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -146,7 +147,7 @@ const CustomerDashboard = ({ user }) => {
     setShowHistoryModal(true);
     try {
       const response = await axios.get(`http://localhost:5080/api/seller/${sellerId}/rating`);
-      setHistoryReviews(response.data.reviews);
+      setHistoryReviews(response.data.reviews || []);
     } catch (err) {
       console.error(err);
       alert('Failed to load reviews history.');
@@ -184,7 +185,6 @@ const CustomerDashboard = ({ user }) => {
       console.error(err);
       alert('Failed to load bids.');
     } finally {
-      setSelectedRequest(prev => prev ? { ...prev, bid_count: response.data.length } : null);
       setLoadingBids(false);
     }
   };
@@ -263,6 +263,27 @@ const CustomerDashboard = ({ user }) => {
     const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Sort Bids logic
+  const sortedBids = [...bids].sort((a, b) => {
+    if (bidsSortOption === 'price') {
+      return a.price - b.price;
+    } else if (bidsSortOption === 'delivery') {
+      return a.delivery_days - b.delivery_days;
+    } else if (bidsSortOption === 'rating') {
+      return b.avg_rating - a.avg_rating;
+    }
+    return 0;
+  });
+
+  // Calculate review stars distribution breakdown
+  const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  historyReviews.forEach(r => {
+    if (ratingCounts[r.rating] !== undefined) {
+      ratingCounts[r.rating]++;
+    }
+  });
+  const totalRev = historyReviews.length;
 
   return (
     <div className="container">
@@ -423,7 +444,25 @@ const CustomerDashboard = ({ user }) => {
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>{selectedRequest.description || "No description provided."}</p>
             </div>
 
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Shop Bids</h3>
+            {/* Bids Header and Sort Selector */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Shop Bids ({bids.length})</h3>
+              {bids.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Sort by:</span>
+                  <select 
+                    className="form-control" 
+                    value={bidsSortOption}
+                    onChange={(e) => setBidsSortOption(e.target.value)}
+                    style={{ width: '130px', padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: 'auto' }}
+                  >
+                    <option value="price">Lowest Price</option>
+                    <option value="delivery">Fastest Delivery</option>
+                    <option value="rating">Highest Rated</option>
+                  </select>
+                </div>
+              )}
+            </div>
 
             {loadingBids ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>Retrieving bids...</div>
@@ -435,7 +474,7 @@ const CustomerDashboard = ({ user }) => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {bids.map((bid) => (
+                {sortedBids.map((bid) => (
                   <div 
                     key={bid.id} 
                     className="glass-card" 
@@ -496,7 +535,7 @@ const CustomerDashboard = ({ user }) => {
                             });
                           }}
                         >
-                          <MessageSquare size={14} /> Chat with Shop
+                          <MessageSquare size={14} /> Chat
                         </button>
                         {selectedRequest.status === 'active' && (
                           <button className="btn btn-primary btn-sm" onClick={() => handleAcceptBid(bid.id)}>
@@ -695,29 +734,59 @@ const CustomerDashboard = ({ user }) => {
             <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {loadingHistory ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>Loading reviews...</div>
-              ) : historyReviews.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                  No reviews submitted for this shop yet.
-                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {historyReviews.map((rev) => (
-                    <div key={rev.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--surface-border)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@{rev.customer_name}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {new Date(rev.created_at).toLocaleDateString()}
-                        </span>
+                <>
+                  {/* Rating distribution breakdown bar chart */}
+                  {totalRev > 0 && (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border)', padding: '1rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
+                      <h4 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--text-primary)', fontWeight: 600 }}>Rating Distribution</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {[5, 4, 3, 2, 1].map(stars => {
+                          const count = ratingCounts[stars] || 0;
+                          const percent = totalRev > 0 ? ((count / totalRev) * 100).toFixed(0) : 0;
+                          return (
+                            <div key={stars} className="rating-dist-row">
+                              <span style={{ width: '45px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                                {stars} <Star size={10} fill="currentColor" style={{ color: 'var(--accent-amber)' }} />
+                              </span>
+                              <div className="rating-dist-bar">
+                                <div className="rating-dist-fill" style={{ width: `${percent}%` }} />
+                              </div>
+                              <span style={{ width: '55px', textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {count} ({percent}%)
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        {renderStars(rev.rating)}
-                      </div>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>
-                        "{rev.comment}"
-                      </p>
                     </div>
-                  ))}
-                </div>
+                  )}
+
+                  {historyReviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                      No reviews submitted for this shop yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {historyReviews.map((rev) => (
+                        <div key={rev.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--surface-border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@{rev.customer_name}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              {new Date(rev.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            {renderStars(rev.rating)}
+                          </div>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -17,6 +17,7 @@ const SellerDashboard = ({ user }) => {
   // My Bids States
   const [myBids, setMyBids] = useState([]);
   const [loadingBids, setLoadingBids] = useState(true);
+  const [bidStatusFilter, setBidStatusFilter] = useState('All'); // 'All', 'pending', 'accepted', 'rejected'
 
   // Bidding Modal States
   const [selectedReq, setSelectedReq] = useState(null);
@@ -51,7 +52,7 @@ const SellerDashboard = ({ user }) => {
     setShowHistoryModal(true);
     try {
       const response = await axios.get(`http://localhost:5080/api/seller/${user.id}/rating`);
-      setHistoryReviews(response.data.reviews);
+      setHistoryReviews(response.data.reviews || []);
     } catch (err) {
       console.error(err);
       alert('Failed to load reviews history.');
@@ -145,6 +146,12 @@ const SellerDashboard = ({ user }) => {
   const totalEarnings = wonBids.reduce((sum, b) => sum + b.price, 0);
   const winRate = myBids.length > 0 ? ((wonBids.length / myBids.length) * 100).toFixed(1) : '0';
 
+  // Filter Placed Bids by Status
+  const filteredMyBids = myBids.filter(bid => {
+    if (bidStatusFilter === 'All') return true;
+    return bid.status === bidStatusFilter;
+  });
+
   // Category Distribution for Analytics
   const categoryStats = wonBids.reduce((acc, bid) => {
     const cat = bid.category || 'General';
@@ -156,6 +163,15 @@ const SellerDashboard = ({ user }) => {
     if (!expiresAt) return false;
     return new Date(expiresAt.replace(' ', 'T') + 'Z') < new Date();
   };
+
+  // Calculate self-review rating counts
+  const selfRatingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  historyReviews.forEach(r => {
+    if (selfRatingCounts[r.rating] !== undefined) {
+      selfRatingCounts[r.rating]++;
+    }
+  });
+  const totalSelfReviews = historyReviews.length;
 
   return (
     <div className="container">
@@ -344,17 +360,32 @@ const SellerDashboard = ({ user }) => {
       {/* TAB B: My Placed Bids */}
       {activeTab === 'my-bids' && (
         <div>
+          {/* Bid Status Filters */}
+          <div className="glass-card" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.75rem 1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginRight: '0.5rem' }}>Filter Bids:</span>
+            {['All', 'pending', 'accepted', 'rejected'].map((status) => (
+              <button 
+                key={status}
+                onClick={() => setBidStatusFilter(status)}
+                className={`btn btn-sm ${bidStatusFilter === status ? 'btn-primary' : 'btn-outline'}`}
+                style={{ textTransform: 'capitalize', padding: '0.3rem 0.75rem' }}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+
           {loadingBids ? (
             <div style={{ textAlign: 'center', padding: '4rem' }}>Loading your bids...</div>
-          ) : myBids.length === 0 ? (
+          ) : filteredMyBids.length === 0 ? (
             <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem', color: 'var(--text-secondary)' }}>
               <Gavel size={48} style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }} />
-              <h3>No Bids Placed</h3>
-              <p style={{ marginTop: '0.5rem' }}>You haven't submitted any bids yet. Head over to the active feed to browse client requests!</p>
+              <h3>No Bids Found</h3>
+              <p style={{ marginTop: '0.5rem' }}>No bids match the selected status filter.</p>
             </div>
           ) : (
             <div className="glass-card" style={{ padding: '0' }}>
-              {myBids.map((bid) => (
+              {filteredMyBids.map((bid) => (
                 <div key={bid.id} className="bid-row">
                   <div className="bid-info" style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -579,36 +610,66 @@ const SellerDashboard = ({ user }) => {
             <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {loadingHistory ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>Loading reviews...</div>
-              ) : historyReviews.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                  No reviews submitted for your store yet.
-                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {historyReviews.map((rev) => (
-                    <div key={rev.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--surface-border)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@{rev.customer_name}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {new Date(rev.created_at).toLocaleDateString()}
-                        </span>
+                <>
+                  {/* Rating distribution breakdown bar chart */}
+                  {totalSelfReviews > 0 && (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border)', padding: '1rem', borderRadius: '10px', marginBottom: '1.5rem' }}>
+                      <h4 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--text-primary)', fontWeight: 600 }}>Rating Distribution</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {[5, 4, 3, 2, 1].map(stars => {
+                          const count = selfRatingCounts[stars] || 0;
+                          const percent = totalSelfReviews > 0 ? ((count / totalSelfReviews) * 100).toFixed(0) : 0;
+                          return (
+                            <div key={stars} className="rating-dist-row">
+                              <span style={{ width: '45px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                                {stars} <Star size={10} fill="currentColor" style={{ color: 'var(--accent-amber)' }} />
+                              </span>
+                              <div className="rating-dist-bar">
+                                <div className="rating-dist-fill" style={{ width: `${percent}%` }} />
+                              </div>
+                              <span style={{ width: '55px', textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {count} ({percent}%)
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.15rem', color: 'var(--accent-amber)' }}>
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            size={14} 
-                            fill={i < rev.rating ? "currentColor" : "none"} 
-                            style={{ color: i < rev.rating ? "var(--accent-amber)" : "var(--text-muted)" }} 
-                          />
-                        ))}
-                      </div>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>
-                        "{rev.comment}"
-                      </p>
                     </div>
-                  ))}
-                </div>
+                  )}
+
+                  {historyReviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                      No reviews submitted for your store yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {historyReviews.map((rev) => (
+                        <div key={rev.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--surface-border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@{rev.customer_name}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              {new Date(rev.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.15rem', color: 'var(--accent-amber)' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                size={14} 
+                                fill={i < rev.rating ? "currentColor" : "none"} 
+                                style={{ color: i < rev.rating ? "var(--accent-amber)" : "var(--text-muted)" }} 
+                              />
+                            ))}
+                          </div>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

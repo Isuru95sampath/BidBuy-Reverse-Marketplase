@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon } from 'lucide-react';
+import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon, HelpCircle, MessageSquare } from 'lucide-react';
 
 // Pages
 import Home from './pages/Home';
@@ -15,6 +15,10 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  // Floating Support Care Widget States
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [helpMessage, setHelpMessage] = useState("Hi there! I am your BidBuy Care Assistant. Click a question below to learn how our reverse marketplace works!");
 
   // Load user session on mount
   useEffect(() => {
@@ -38,6 +42,18 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     setUser(null);
+  };
+
+  const handleFaqOption = (option) => {
+    if (option === 'bidding') {
+      setHelpMessage("Buyers post item requests with a target budget and time limit. Local stores/sellers then view this feed and submit competitive bids (quotes). The buyer can chat with any store and accept the best offer!");
+    } else if (option === 'fees') {
+      setHelpMessage("BidBuy is 100% free for customers to post requests! For sellers, there are zero upfront fees. The platform makes it easy to win local customers directly.");
+    } else if (option === 'support') {
+      setHelpMessage("You can email our customer support team directly at support@bidbuy.com or call our hotline. We are active 24/7 to resolve disputes or answer queries!");
+    } else if (option === 'deals') {
+      setHelpMessage("Once you accept a seller's bid, the request is marked completed. You can open the chat to organize delivery/payment details directly with the store. Don't forget to leave a review!");
+    }
   };
 
   if (loading) {
@@ -216,6 +232,51 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
+
+        {/* Floating FAQ/Help Widget */}
+        <button 
+          className="help-widget-btn" 
+          onClick={() => setShowHelpPanel(!showHelpPanel)}
+          title="Need Help?"
+        >
+          {showHelpPanel ? <X size={22} /> : <HelpCircle size={22} />}
+        </button>
+
+        {showHelpPanel && (
+          <div className="help-panel glass-card">
+            <div className="help-panel-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageSquare size={16} />
+                <strong style={{ fontSize: '0.95rem' }}>BidBuy Support Assistant</strong>
+              </div>
+              <button 
+                onClick={() => setShowHelpPanel(false)} 
+                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.8 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="help-panel-body">
+              <div className="help-bubble-bot">
+                {helpMessage}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button className="help-option-btn" onClick={() => handleFaqOption('bidding')}>
+                  ❓ How does bidding work?
+                </button>
+                <button className="help-option-btn" onClick={() => handleFaqOption('fees')}>
+                  💸 Are there any platform fees?
+                </button>
+                <button className="help-option-btn" onClick={() => handleFaqOption('deals')}>
+                  🤝 How do I complete a deal?
+                </button>
+                <button className="help-option-btn" onClick={() => handleFaqOption('support')}>
+                  📞 How to contact customer support?
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <footer style={{ borderTop: '1px solid var(--surface-border)', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)', background: 'rgba(10, 14, 23, 0.4)' }}>
