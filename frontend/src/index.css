@@ -26,6 +26,45 @@
   --blur-glass: blur(12px);
 }
 
+/* Light Theme Variables & Overrides */
+body.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(15, 23, 42, 0.08);
+  --surface-hover: rgba(15, 23, 42, 0.04);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+}
+
+body.light-theme .glass-card {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+body.light-theme .form-control {
+  background: rgba(15, 23, 42, 0.02);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}
+
+body.light-theme .form-control:focus {
+  background: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+body.light-theme .mobile-drawer {
+  background: #ffffff;
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme select.form-control option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+
 * {
   margin: 0;
   padding: 0;

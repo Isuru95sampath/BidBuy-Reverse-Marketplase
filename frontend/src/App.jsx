@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X } from 'lucide-react';
+import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon } from 'lucide-react';
 
 // Pages
 import Home from './pages/Home';
@@ -14,6 +14,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
 
   // Load user session on mount
   useEffect(() => {
@@ -24,6 +25,16 @@ function App() {
     setLoading(false);
   }, []);
 
+  // Theme Sync Effect
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     setUser(null);
@@ -31,7 +42,7 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0a0e17', color: 'white' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         <h2>Loading BidBuy...</h2>
       </div>
     );
@@ -86,6 +97,28 @@ function App() {
                   <Link to="/register" className="btn btn-primary btn-sm" style={{ padding: '0.5rem 1rem' }}>Register</Link>
                 </>
               )}
+
+              {/* Theme Toggle Button */}
+              <button 
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
+                className="btn btn-outline" 
+                style={{ 
+                  borderRadius: '50%', 
+                  width: '34px', 
+                  height: '34px', 
+                  padding: '0', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderColor: 'var(--surface-border)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer'
+                }}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
             </div>
 
             {/* Hamburger Button (Mobile View) */}
@@ -104,7 +137,8 @@ function App() {
                   <Link to="/dashboard" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Customer Dashboard</Link>
                 ) : (
                   <Link to="/market" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Seller Marketplace</Link>
-                )}
+                )
+                }
                 <div style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     Store: <strong>{user.role === 'customer' ? user.username : user.shop_name}</strong>
@@ -113,7 +147,7 @@ function App() {
                     Role: {user.role}
                   </span>
                 </div>
-                <button onClick={() => { handleLogout(); setIsDrawerOpen(false); }} className="btn btn-outline btn-sm" style={{ margin: '1rem 0' }}>
+                <button onClick={() => { handleLogout(); setIsDrawerOpen(false); }} className="btn btn-outline btn-sm" style={{ margin: '1rem 0', width: '100%' }}>
                   <LogOut size={14} /> Log Out
                 </button>
               </>
@@ -123,6 +157,22 @@ function App() {
                 <Link to="/register" className="btn btn-primary btn-sm" onClick={() => setIsDrawerOpen(false)} style={{ margin: '1rem 0', display: 'inline-flex' }}>Register</Link>
               </>
             )}
+
+            {/* Mobile Theme Toggle */}
+            <button 
+              onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setIsDrawerOpen(false); }} 
+              className="btn btn-outline" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                width: '100%', 
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              {theme === 'dark' ? <><Sun size={15} /> Light Mode</> : <><Moon size={15} /> Dark Mode</>}
+            </button>
           </div>
         </nav>
 
