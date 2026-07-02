@@ -4,6 +4,19 @@ import { Search, Filter, Gavel, DollarSign, Calendar, Sparkles, X, HeartHandshak
 import ChatWindow from '../components/ChatWindow';
 import { CountdownTimer } from './CustomerDashboard';
 
+const CATEGORY_KEYS = [
+  'Electronics',
+  'Clothing & Fashion',
+  'Furniture & Home',
+  'Sports & Outdoors',
+  'Automotive & Parts',
+  'Books & Education',
+  'Groceries & Food',
+  'Toys & Hobbies',
+  'Health & Beauty',
+  'Other / General'
+];
+
 const SellerDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('feed'); // 'feed', 'my-bids', or 'analytics'
   
@@ -18,6 +31,7 @@ const SellerDashboard = ({ user }) => {
   const [myBids, setMyBids] = useState([]);
   const [loadingBids, setLoadingBids] = useState(true);
   const [bidStatusFilter, setBidStatusFilter] = useState('All'); // 'All', 'pending', 'accepted', 'rejected'
+  const [bidCategoryFilter, setBidCategoryFilter] = useState('All'); // 'All', plus CATEGORY_KEYS
 
   // Bidding Modal States
   const [selectedReq, setSelectedReq] = useState(null);
@@ -93,7 +107,7 @@ const SellerDashboard = ({ user }) => {
     fetchSellerRating();
   }, [user.id]);
 
-  // Apply filters
+  // Apply filters to feed requests
   useEffect(() => {
     let result = requests;
     
@@ -146,15 +160,16 @@ const SellerDashboard = ({ user }) => {
   const totalEarnings = wonBids.reduce((sum, b) => sum + b.price, 0);
   const winRate = myBids.length > 0 ? ((wonBids.length / myBids.length) * 100).toFixed(1) : '0';
 
-  // Filter Placed Bids by Status
+  // Filter Placed Bids by Status AND Category
   const filteredMyBids = myBids.filter(bid => {
-    if (bidStatusFilter === 'All') return true;
-    return bid.status === bidStatusFilter;
+    const matchesStatus = bidStatusFilter === 'All' || bid.status === bidStatusFilter;
+    const matchesCategory = bidCategoryFilter === 'All' || bid.category === bidCategoryFilter;
+    return matchesStatus && matchesCategory;
   });
 
   // Category Distribution for Analytics
   const categoryStats = wonBids.reduce((acc, bid) => {
-    const cat = bid.category || 'General';
+    const cat = bid.category || 'Other / General';
     acc[cat] = (acc[cat] || 0) + bid.price;
     return acc;
   }, {});
@@ -291,12 +306,9 @@ const SellerDashboard = ({ user }) => {
                 style={{ width: '180px' }}
               >
                 <option value="All">All Categories</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Clothing">Clothing</option>
-                <option value="Furniture">Furniture</option>
-                <option value="Sports">Sports</option>
-                <option value="Automotive">Automotive</option>
-                <option value="General">General</option>
+                {CATEGORY_KEYS.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -360,19 +372,36 @@ const SellerDashboard = ({ user }) => {
       {/* TAB B: My Placed Bids */}
       {activeTab === 'my-bids' && (
         <div>
-          {/* Bid Status Filters */}
-          <div className="glass-card" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.75rem 1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginRight: '0.5rem' }}>Filter Bids:</span>
-            {['All', 'pending', 'accepted', 'rejected'].map((status) => (
-              <button 
-                key={status}
-                onClick={() => setBidStatusFilter(status)}
-                className={`btn btn-sm ${bidStatusFilter === status ? 'btn-primary' : 'btn-outline'}`}
-                style={{ textTransform: 'capitalize', padding: '0.3rem 0.75rem' }}
+          {/* Bid Status & Category Filters */}
+          <div className="glass-card" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', padding: '0.75rem 1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Status:</span>
+              {['All', 'pending', 'accepted', 'rejected'].map((status) => (
+                <button 
+                  key={status}
+                  onClick={() => setBidStatusFilter(status)}
+                  className={`btn btn-sm ${bidStatusFilter === status ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ textTransform: 'capitalize', padding: '0.3rem 0.75rem' }}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto', minWidth: '220px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Category:</span>
+              <select 
+                className="form-control" 
+                value={bidCategoryFilter}
+                onChange={(e) => setBidCategoryFilter(e.target.value)}
+                style={{ flex: 1, padding: '0.25rem 0.5rem', fontSize: '0.8rem', height: 'auto' }}
               >
-                {status}
-              </button>
-            ))}
+                <option value="All">All Categories</option>
+                {CATEGORY_KEYS.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {loadingBids ? (
@@ -381,7 +410,7 @@ const SellerDashboard = ({ user }) => {
             <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem', color: 'var(--text-secondary)' }}>
               <Gavel size={48} style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }} />
               <h3>No Bids Found</h3>
-              <p style={{ marginTop: '0.5rem' }}>No bids match the selected status filter.</p>
+              <p style={{ marginTop: '0.5rem' }}>No bids match the selected status and category filters.</p>
             </div>
           ) : (
             <div className="glass-card" style={{ padding: '0' }}>
@@ -579,7 +608,7 @@ const SellerDashboard = ({ user }) => {
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                   <button type="button" className="btn btn-outline" onClick={() => setSelectedReq(null)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" disabled={submittingBid}>
-                    {submittingBid ? 'Submitting...' : 'Submit Quote Bid'}
+                    {submittingBid ? 'Submit Quote Bid' : 'Submit Quote Bid'}
                   </button>
                 </div>
               </div>

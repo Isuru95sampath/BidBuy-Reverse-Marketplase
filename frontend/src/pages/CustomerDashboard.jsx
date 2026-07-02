@@ -4,13 +4,30 @@ import { Plus, X, Tag, Gavel, DollarSign, Clock, MessageSquare, AlertCircle, Sta
 import ChatWindow from '../components/ChatWindow';
 
 const CATEGORY_IMAGES = {
-  Electronics: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-  Clothing: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-  Furniture: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-  Sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-  Automotive: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-  General: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
+  'Electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Clothing & Fashion': 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Furniture & Home': 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Sports & Outdoors': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Automotive & Parts': 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Books & Education': 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Groceries & Food': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Toys & Hobbies': 'https://images.unsplash.com/photo-1539627831859-a911cf04b3cd?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Health & Beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+  'Other / General': 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
 };
+
+const CATEGORY_KEYS = [
+  'Electronics',
+  'Clothing & Fashion',
+  'Furniture & Home',
+  'Sports & Outdoors',
+  'Automotive & Parts',
+  'Books & Education',
+  'Groceries & Food',
+  'Toys & Hobbies',
+  'Health & Beauty',
+  'Other / General'
+];
 
 // Reusable Countdown Timer Component
 export const CountdownTimer = ({ expiresAt }) => {
@@ -75,7 +92,7 @@ const CustomerDashboard = ({ user }) => {
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('General');
+  const [category, setCategory] = useState('Other / General');
   const [budget, setBudget] = useState('');
   const [expiryHours, setExpiryHours] = useState('24');
   const [customImage, setCustomImage] = useState('');
@@ -204,7 +221,7 @@ const CustomerDashboard = ({ user }) => {
   // Submit request
   const handleCreateRequest = async (e) => {
     e.preventDefault();
-    const finalImage = customImage || CATEGORY_IMAGES[category];
+    const finalImage = customImage || CATEGORY_IMAGES[category] || CATEGORY_IMAGES['Other / General'];
 
     try {
       await axios.post('http://localhost:5080/api/requests', {
@@ -220,7 +237,7 @@ const CustomerDashboard = ({ user }) => {
       // Reset form
       setTitle('');
       setDescription('');
-      setCategory('General');
+      setCategory('Other / General');
       setBudget('');
       setExpiryHours('24');
       setCustomImage('');
@@ -323,12 +340,9 @@ const CustomerDashboard = ({ user }) => {
           style={{ flex: 1, minWidth: '150px' }}
         >
           <option value="All">All Categories</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Clothing">Clothing</option>
-          <option value="Furniture">Furniture</option>
-          <option value="Sports">Sports</option>
-          <option value="Automotive">Automotive</option>
-          <option value="General">General</option>
+          {CATEGORY_KEYS.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
         <select 
           className="form-control" 
@@ -582,12 +596,9 @@ const CustomerDashboard = ({ user }) => {
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                     >
-                      <option value="Electronics">Electronics</option>
-                      <option value="Clothing">Clothing</option>
-                      <option value="Furniture">Furniture</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Automotive">Automotive</option>
-                      <option value="General">General</option>
+                      {CATEGORY_KEYS.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">
