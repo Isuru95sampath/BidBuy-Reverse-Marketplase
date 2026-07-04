@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon, HelpCircle, MessageSquare } from 'lucide-react';
+import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 // Pages
 import Home from './pages/Home';
@@ -20,6 +22,129 @@ function App() {
   // Floating Support Care Widget States
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [helpMessage, setHelpMessage] = useState("Hi there! I am your BidBuy Care Assistant. Click a question below to learn how our reverse marketplace works!");
+
+  // Toast notifications state
+  const [toasts, setToasts] = useState([]);
+
+  // Synthesize notification chime using Web Audio API
+  const playToastChime = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.15);
+
+      setTimeout(() => {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        gain2.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        osc2.start(audioCtx.currentTime);
+        osc2.stop(audioCtx.currentTime + 0.25);
+      }, 80);
+    } catch (e) {
+      console.warn("Audio chime blocked or failed:", e);
+    }
+  };
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    playToastChime();
+    
+    // Auto remove after 6 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 6000);
+  };
+
+  // Background polling for notifications
+  useEffect(() => {
+    if (!user || user.role === 'admin') return;
+
+    // Load initial empty keys to avoid spam alerts on initial login
+    if (!localStorage.getItem('notified_bids')) {
+      localStorage.setItem('notified_bids', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('notified_accepted')) {
+      localStorage.setItem('notified_accepted', JSON.stringify([]));
+    }
+    if (!localStorage.getItem('notified_messages')) {
+      localStorage.setItem('notified_messages', JSON.stringify([]));
+    }
+
+    const checkNotifications = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/notifications/check`, {
+          params: { user_id: user.id, role: user.role }
+        });
+        const { bids, messages } = response.data;
+
+        // 1. Process Bids notifications
+        const localNotifiedBids = JSON.parse(localStorage.getItem('notified_bids') || '[]');
+        const localNotifiedAccepted = JSON.parse(localStorage.getItem('notified_accepted') || '[]');
+        const updatedBidsList = [...localNotifiedBids];
+        const updatedAcceptedList = [...localNotifiedAccepted];
+        let bidsChanged = false;
+
+        bids.forEach(bid => {
+          if (user.role === 'customer') {
+            if (!localNotifiedBids.includes(bid.id)) {
+              addToast(`🔔 New bid of Rs. ${bid.price.toLocaleString()} received from ${bid.shop_name} on your request "${bid.request_title}"!`, 'info');
+              updatedBidsList.push(bid.id);
+              bidsChanged = true;
+            }
+          } else if (user.role === 'seller') {
+            if (bid.status === 'accepted' && !localNotifiedAccepted.includes(bid.id)) {
+              addToast(`🎉 Congratulations! Your bid of Rs. ${bid.price.toLocaleString()} for "${bid.request_title}" was accepted!`, 'success');
+              updatedAcceptedList.push(bid.id);
+              bidsChanged = true;
+            }
+          }
+        });
+
+        if (bidsChanged) {
+          localStorage.setItem('notified_bids', JSON.stringify(updatedBidsList));
+          localStorage.setItem('notified_accepted', JSON.stringify(updatedAcceptedList));
+        }
+
+        // 2. Process Messages notifications
+        const localNotifiedMessages = JSON.parse(localStorage.getItem('notified_messages') || '[]');
+        const updatedMessagesList = [...localNotifiedMessages];
+        let msgChanged = false;
+
+        messages.forEach(msg => {
+          if (!localNotifiedMessages.includes(msg.id)) {
+            addToast(`✉️ New message from @${msg.sender_name} for "${msg.request_title}": "${msg.message}"`, 'success');
+            updatedMessagesList.push(msg.id);
+            msgChanged = true;
+          }
+        });
+
+        if (msgChanged) {
+          localStorage.setItem('notified_messages', JSON.stringify(updatedMessagesList));
+        }
+      } catch (err) {
+        console.error('Failed to poll system notifications', err);
+      }
+    };
+
+    // Poll every 5 seconds
+    checkNotifications();
+    const pollInterval = setInterval(checkNotifications, 5000);
+    return () => clearInterval(pollInterval);
+  }, [user]);
 
   // Load user session on mount
   useEffect(() => {
@@ -304,6 +429,21 @@ function App() {
             )}
           </>
         )}
+
+        {/* Global Toaster Alerts */}
+        <div className="toast-container">
+          {toasts.map(t => (
+            <div key={t.id} className={`toast toast-${t.type}`}>
+              <div className="toast-message">{t.message}</div>
+              <button 
+                className="toast-close" 
+                onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
 
         {/* Footer */}
         <footer style={{ borderTop: '1px solid var(--surface-border)', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)', background: 'rgba(10, 14, 23, 0.4)' }}>

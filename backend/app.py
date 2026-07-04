@@ -569,5 +569,63 @@ def delete_admin_bid(bid_id):
         conn.close()
 
 
+@app.route('/api/notifications/check', methods=['GET'])
+def check_notifications():
+    user_id = request.args.get('user_id', type=int)
+    role = request.args.get('role')
+    if not user_id or not role:
+        return jsonify({"error": "Missing user_id or role"}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        bids_data = []
+        messages_data = []
+        
+        # 1. Fetch unread/recent messages
+        rows = cursor.execute("""
+            SELECT m.id, m.message, m.created_at, r.title as request_title, u.username as sender_name
+            FROM messages m
+            JOIN requests r ON m.request_id = r.id
+            JOIN users u ON m.sender_id = u.id
+            WHERE m.receiver_id = ?
+            ORDER BY m.id DESC LIMIT 20
+        """, (user_id,)).fetchall()
+        messages_data = [dict(row) for row in rows]
+        
+        # 2. Fetch role-specific details
+        if role == 'customer':
+            # Bids on customer requests
+            rows = cursor.execute("""
+                SELECT b.id, b.price, u.shop_name, r.title as request_title
+                FROM bids b
+                JOIN requests r ON b.request_id = r.id
+                JOIN users u ON b.seller_id = u.id
+                WHERE r.customer_id = ?
+                ORDER BY b.id DESC LIMIT 20
+            """, (user_id,)).fetchall()
+            bids_data = [dict(row) for row in rows]
+            
+        elif role == 'seller':
+            # Bids placed by this seller
+            rows = cursor.execute("""
+                SELECT b.id, b.price, b.status, r.title as request_title
+                FROM bids b
+                JOIN requests r ON b.request_id = r.id
+                WHERE b.seller_id = ?
+                ORDER BY b.id DESC LIMIT 20
+            """, (user_id,)).fetchall()
+            bids_data = [dict(row) for row in rows]
+            
+        return jsonify({
+            "bids": bids_data,
+            "messages": messages_data
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5080)
