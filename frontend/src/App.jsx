@@ -14,7 +14,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   // Floating Support Care Widget States
   const [showHelpPanel, setShowHelpPanel] = useState(false);
@@ -31,10 +31,12 @@ function App() {
 
   // Theme Sync Effect
   useEffect(() => {
-    if (theme === 'light') {
-      document.body.classList.add('light-theme');
-    } else {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-theme');
       document.body.classList.remove('light-theme');
+    } else {
+      document.body.classList.add('light-theme');
+      document.body.classList.remove('dark-theme');
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
