@@ -411,5 +411,163 @@ def get_seller_rating_details(seller_id):
         conn.close()
 
 
+# --- ADMIN CONTROLLER ROUTES ---
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    import os
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        users_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role != 'admin'").fetchone()[0]
+        customers_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'customer'").fetchone()[0]
+        sellers_count = cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'seller'").fetchone()[0]
+        requests_count = cursor.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
+        bids_count = cursor.execute("SELECT COUNT(*) FROM bids").fetchone()[0]
+        reviews_count = cursor.execute("SELECT COUNT(*) FROM reviews").fetchone()[0]
+        messages_count = cursor.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+        
+        db_path = os.path.join(os.path.dirname(__file__), 'database.db')
+        db_size_kb = round(os.path.getsize(db_path) / 1024, 1) if os.path.exists(db_path) else 0.0
+
+        return jsonify({
+            "total_users": users_count,
+            "total_customers": customers_count,
+            "total_sellers": sellers_count,
+            "total_requests": requests_count,
+            "total_bids": bids_count,
+            "total_reviews": reviews_count,
+            "total_messages": messages_count,
+            "db_size_kb": db_size_kb
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_admin_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        rows = cursor.execute("""
+            SELECT u.id, u.username, u.role, u.shop_name,
+                   (SELECT COUNT(*) FROM requests r WHERE r.customer_id = u.id) as requests_count,
+                   (SELECT COUNT(*) FROM bids b WHERE b.seller_id = u.id) as bids_count
+            FROM users u
+            WHERE u.role != 'admin'
+            ORDER BY u.id DESC
+        """).fetchall()
+        return jsonify([dict(row) for row in rows]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def delete_admin_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Get role
+        user = cursor.execute("SELECT role FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        role = user['role']
+        
+        if role == 'customer':
+            # Get requests
+            requests = cursor.execute("SELECT id FROM requests WHERE customer_id = ?", (user_id,)).fetchall()
+            req_ids = [r['id'] for r in requests]
+            if req_ids:
+                placeholders = ','.join('?' for _ in req_ids)
+                cursor.execute(f"DELETE FROM bids WHERE request_id IN ({placeholders})", req_ids)
+                cursor.execute(f"DELETE FROM reviews WHERE request_id IN ({placeholders})", req_ids)
+                cursor.execute(f"DELETE FROM messages WHERE request_id IN ({placeholders})", req_ids)
+                cursor.execute("DELETE FROM requests WHERE customer_id = ?", (user_id,))
+            
+            cursor.execute("DELETE FROM reviews WHERE customer_id = ?", (user_id,))
+            cursor.execute("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", (user_id, user_id))
+            
+        elif role == 'seller':
+            cursor.execute("DELETE FROM bids WHERE seller_id = ?", (user_id,))
+            cursor.execute("DELETE FROM reviews WHERE seller_id = ?", (user_id,))
+            cursor.execute("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", (user_id, user_id))
+            
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+        return jsonify({"message": "User and all associated data deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/requests', methods=['GET'])
+def get_admin_requests():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        rows = cursor.execute("""
+            SELECT r.*, u.username as customer_name,
+                   (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
+            FROM requests r
+            JOIN users u ON r.customer_id = u.id
+            ORDER BY r.created_at DESC
+        """).fetchall()
+        return jsonify([dict(row) for row in rows]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/requests/<int:request_id>', methods=['DELETE'])
+def delete_admin_request(request_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM bids WHERE request_id = ?", (request_id,))
+        cursor.execute("DELETE FROM reviews WHERE request_id = ?", (request_id,))
+        cursor.execute("DELETE FROM messages WHERE request_id = ?", (request_id,))
+        cursor.execute("DELETE FROM requests WHERE id = ?", (request_id,))
+        conn.commit()
+        return jsonify({"message": "Request and all associated bids deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/bids', methods=['GET'])
+def get_admin_bids():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        rows = cursor.execute("""
+            SELECT b.*, r.title as request_title, u.username as seller_name, u.shop_name
+            FROM bids b
+            JOIN requests r ON b.request_id = r.id
+            JOIN users u ON b.seller_id = u.id
+            ORDER BY b.created_at DESC
+        """).fetchall()
+        return jsonify([dict(row) for row in rows]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/bids/<int:bid_id>', methods=['DELETE'])
+def delete_admin_bid(bid_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM bids WHERE id = ?", (bid_id,))
+        conn.commit()
+        return jsonify({"message": "Bid deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5080)

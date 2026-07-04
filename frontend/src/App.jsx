@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Auth from './pages/Auth';
 import CustomerDashboard from './pages/CustomerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 import './index.css';
 
@@ -83,21 +84,27 @@ function App() {
               
               {user ? (
                 <>
-                  {user.role === 'customer' ? (
+                  {user.role === 'customer' && (
                     <Link to="/dashboard" className="nav-link">Customer Dashboard</Link>
-                  ) : (
+                  )}
+                  {user.role === 'seller' && (
                     <Link to="/market" className="nav-link">Seller Marketplace</Link>
+                  )}
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="nav-link">Admin Panel</Link>
                   )}
 
                   {/* Profile Badge */}
                   <div className="user-badge">
                     {user.role === 'customer' ? (
                       <ShoppingBag size={14} style={{ color: 'var(--primary)' }} />
+                    ) : user.role === 'admin' ? (
+                      <User size={14} style={{ color: 'var(--accent-rose)' }} />
                     ) : (
                       <Store size={14} style={{ color: 'var(--secondary)' }} />
                     )}
                     <span style={{ color: 'var(--text-primary)' }}>
-                      {user.role === 'customer' ? user.username : user.shop_name}
+                      {user.role === 'seller' ? user.shop_name : user.username}
                     </span>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.4rem', borderRadius: '4px', marginLeft: '0.25rem' }}>
                       {user.role}
@@ -151,15 +158,18 @@ function App() {
             <Link to="/" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Home</Link>
             {user ? (
               <>
-                {user.role === 'customer' ? (
+                {user.role === 'customer' && (
                   <Link to="/dashboard" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Customer Dashboard</Link>
-                ) : (
+                )}
+                {user.role === 'seller' && (
                   <Link to="/market" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Seller Marketplace</Link>
-                )
-                }
+                )}
+                {user.role === 'admin' && (
+                  <Link to="/admin" className="nav-link" onClick={() => setIsDrawerOpen(false)}>Admin Panel</Link>
+                )}
                 <div style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Store: <strong>{user.role === 'customer' ? user.username : user.shop_name}</strong>
+                    User: <strong>{user.role === 'seller' ? user.shop_name : user.username}</strong>
                   </span>
                   <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                     Role: {user.role}
@@ -201,19 +211,19 @@ function App() {
             
             <Route 
               path="/login" 
-              element={user ? <Navigate to={user.role === 'customer' ? '/dashboard' : '/market'} /> : <Auth setLoggedUser={setUser} mode="login" />} 
+              element={user ? <Navigate to={user.role === 'customer' ? '/dashboard' : user.role === 'admin' ? '/admin' : '/market'} /> : <Auth setLoggedUser={setUser} mode="login" />} 
             />
             
             <Route 
               path="/register" 
-              element={user ? <Navigate to={user.role === 'customer' ? '/dashboard' : '/market'} /> : <Auth setLoggedUser={setUser} mode="register" />} 
+              element={user ? <Navigate to={user.role === 'customer' ? '/dashboard' : user.role === 'admin' ? '/admin' : '/market'} /> : <Auth setLoggedUser={setUser} mode="register" />} 
             />
 
             <Route 
               path="/dashboard" 
               element={
                 user ? (
-                  user.role === 'customer' ? <CustomerDashboard user={user} /> : <Navigate to="/market" />
+                  user.role === 'customer' ? <CustomerDashboard user={user} /> : user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/market" />
                 ) : (
                   <Navigate to="/login" />
                 )
@@ -224,7 +234,18 @@ function App() {
               path="/market" 
               element={
                 user ? (
-                  user.role === 'seller' ? <SellerDashboard user={user} /> : <Navigate to="/dashboard" />
+                  user.role === 'seller' ? <SellerDashboard user={user} /> : user.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              } 
+            />
+
+            <Route 
+              path="/admin" 
+              element={
+                user ? (
+                  user.role === 'admin' ? <AdminDashboard user={user} /> : <Navigate to="/" />
                 ) : (
                   <Navigate to="/login" />
                 )
@@ -236,48 +257,52 @@ function App() {
         </div>
 
         {/* Floating FAQ/Help Widget */}
-        <button 
-          className="help-widget-btn" 
-          onClick={() => setShowHelpPanel(!showHelpPanel)}
-          title="Need Help?"
-        >
-          {showHelpPanel ? <X size={22} /> : <HelpCircle size={22} />}
-        </button>
+        {(!user || user.role !== 'admin') && (
+          <>
+            <button 
+              className="help-widget-btn" 
+              onClick={() => setShowHelpPanel(!showHelpPanel)}
+              title="Need Help?"
+            >
+              {showHelpPanel ? <X size={22} /> : <HelpCircle size={22} />}
+            </button>
 
-        {showHelpPanel && (
-          <div className="help-panel glass-card">
-            <div className="help-panel-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MessageSquare size={16} />
-                <strong style={{ fontSize: '0.95rem' }}>BidBuy Support Assistant</strong>
+            {showHelpPanel && (
+              <div className="help-panel glass-card">
+                <div className="help-panel-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <MessageSquare size={16} />
+                    <strong style={{ fontSize: '0.95rem' }}>BidBuy Support Assistant</strong>
+                  </div>
+                  <button 
+                    onClick={() => setShowHelpPanel(false)} 
+                    style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.8 }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="help-panel-body">
+                  <div className="help-bubble-bot">
+                    {helpMessage}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button className="help-option-btn" onClick={() => handleFaqOption('bidding')}>
+                      ❓ How does bidding work?
+                    </button>
+                    <button className="help-option-btn" onClick={() => handleFaqOption('fees')}>
+                      💸 Are there any platform fees?
+                    </button>
+                    <button className="help-option-btn" onClick={() => handleFaqOption('deals')}>
+                      🤝 How do I complete a deal?
+                    </button>
+                    <button className="help-option-btn" onClick={() => handleFaqOption('support')}>
+                      📞 How to contact customer support?
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button 
-                onClick={() => setShowHelpPanel(false)} 
-                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.8 }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="help-panel-body">
-              <div className="help-bubble-bot">
-                {helpMessage}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button className="help-option-btn" onClick={() => handleFaqOption('bidding')}>
-                  ❓ How does bidding work?
-                </button>
-                <button className="help-option-btn" onClick={() => handleFaqOption('fees')}>
-                  💸 Are there any platform fees?
-                </button>
-                <button className="help-option-btn" onClick={() => handleFaqOption('deals')}>
-                  🤝 How do I complete a deal?
-                </button>
-                <button className="help-option-btn" onClick={() => handleFaqOption('support')}>
-                  📞 How to contact customer support?
-                </button>
-              </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
 
         {/* Footer */}

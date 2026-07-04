@@ -98,6 +98,17 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # Seed default admin user if not exists
+    from werkzeug.security import generate_password_hash
+    admin_exists = cursor.execute("SELECT 1 FROM users WHERE username = 'IsuruRaaz'").fetchone()
+    if not admin_exists:
+        admin_pass = generate_password_hash("Isuru956118%#@")
+        cursor.execute(
+            "INSERT INTO users (username, password, role, shop_name) VALUES (?, ?, ?, ?)",
+            ("IsuruRaaz", admin_pass, "admin", "System Administrator")
+        )
+        print("Default System Admin account seeded!")
+
     conn.commit()
     conn.close()
     print("SQLite Database Initialized Successfully!")

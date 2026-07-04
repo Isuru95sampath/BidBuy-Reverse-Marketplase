@@ -46,6 +46,8 @@ const Auth = ({ setLoggedUser, mode = 'login' }) => {
         
         if (loggedInUser.role === 'customer') {
           navigate('/dashboard');
+        } else if (loggedInUser.role === 'admin') {
+          navigate('/admin');
         } else {
           navigate('/market');
         }

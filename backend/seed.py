@@ -17,6 +17,9 @@ def seed_database():
     
     # 2. Add Users
     users_data = [
+        # System Admin
+        ("IsuruRaaz", generate_password_hash("Isuru956118%#@"), "admin", "System Administrator"),
+        
         # Customers
         ("saman", generate_password_hash("password123"), "customer", ""),
         ("nimal", generate_password_hash("password123"), "customer", ""),
