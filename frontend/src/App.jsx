@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon, HelpCircle, MessageSquare } from 'lucide-react';
+import { Gavel, LogOut, User, ShoppingBag, Store, Menu, X, Sun, Moon, HelpCircle, MessageSquare, Home as HomeIcon } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from './config';
 
@@ -444,6 +444,38 @@ function App() {
             </div>
           ))}
         </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        {user && (
+          <div className="mobile-bottom-nav">
+            <Link to="/" className="bottom-nav-item">
+              <HomeIcon size={20} />
+              <span>Home</span>
+            </Link>
+            {user.role === 'customer' && (
+              <Link to="/dashboard" className="bottom-nav-item">
+                <ShoppingBag size={20} />
+                <span>Dashboard</span>
+              </Link>
+            )}
+            {user.role === 'seller' && (
+              <Link to="/market" className="bottom-nav-item">
+                <Store size={20} />
+                <span>Marketplace</span>
+              </Link>
+            )}
+            {user.role === 'admin' && (
+              <Link to="/admin" className="bottom-nav-item">
+                <User size={20} />
+                <span>Admin</span>
+              </Link>
+            )}
+            <button onClick={handleLogout} className="bottom-nav-item" style={{ background: 'none', border: 'none', padding: '8px 12px', cursor: 'pointer' }}>
+              <LogOut size={20} />
+              <span>Log Out</span>
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
         <footer style={{ borderTop: '1px solid var(--surface-border)', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)', background: 'rgba(10, 14, 23, 0.4)' }}>

@@ -1069,3 +1069,74 @@ body.light-theme .help-bubble-bot {
 .toast-warning::before { background: var(--accent-amber); }
 .toast-danger::before { background: var(--accent-rose); }
 
+
+/* Prevent blue tap highlights and text selection on mobile devices (native app feel) */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  input, textarea {
+    user-select: text;
+  }
+
+  /* Safe Area Notch / Punch-hole Offsets */
+  .navbar, header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+  }
+  .mobile-drawer {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem) !important;
+  }
+
+  /* Mobile Bottom Navigation Layout */
+  .mobile-bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-bottom, 0px) + 60px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(10, 14, 23, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--surface-border);
+    z-index: 1000;
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    transition: var(--transition-smooth);
+  }
+
+  .bottom-nav-item:hover, .bottom-nav-item:focus {
+    color: var(--primary);
+  }
+
+  body {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 65px) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .help-widget-btn {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 75px) !important;
+  }
+
+  .help-panel {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 130px) !important;
+  }
+}
+
