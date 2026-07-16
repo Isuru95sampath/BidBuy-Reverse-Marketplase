@@ -29,7 +29,7 @@ export default function AuthScreen() {
       setLoading(true);
       if (isLogin) {
         // Log In
-        const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
+        const response = await axios.post(`${API_BASE_URL}/auth/login`, { username, password });
         login(response.data.user);
       } else {
         // Register
@@ -40,7 +40,7 @@ export default function AuthScreen() {
           shop_name: role === 'seller' ? shopName : null,
           business_no: role === 'seller' ? businessNo : null
         };
-        const response = await axios.post(`${API_BASE_URL}/register`, payload);
+        const response = await axios.post(`${API_BASE_URL}/auth/register`, payload);
         Alert.alert('Success', 'Registration successful! Please log in.');
         setIsLogin(true);
       }
