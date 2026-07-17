@@ -65,7 +65,7 @@ export default function App() {
       <AuthContext.Provider value={{ user, login, logout }}>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!user ? (
+            {!user || !['customer', 'seller', 'admin'].includes(user.role) ? (
               <Stack.Screen name="Auth" component={AuthScreen} />
             ) : (
               <>

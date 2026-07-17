@@ -200,7 +200,7 @@ export default function CustomerScreen() {
     if (!newMsg.trim()) return;
     // Determine receiver (the seller of the selected bid or the one we are chatting with)
     // Find seller_id from bids
-    const sellerId = activeChatRequest.bids.find(b => b.status === 'accepted' || b.status === 'pending')?.seller_id;
+    const sellerId = (activeChatRequest.bids || []).find(b => b.status === 'accepted' || b.status === 'pending')?.seller_id;
     if (!sellerId) return;
 
     try {
@@ -274,8 +274,8 @@ export default function CustomerScreen() {
             </View>
 
             {/* Bids Section */}
-            <Text style={styles.bidsTitle}>Quotes received ({item.bids.length})</Text>
-            {item.bids.map(bid => (
+            <Text style={styles.bidsTitle}>Quotes received ({(item.bids || []).length})</Text>
+            {(item.bids || []).map(bid => (
               <View key={bid.id} style={styles.bidRow}>
                 <View>
                   <Text style={styles.bidSeller}>{bid.shop_name}</Text>

@@ -113,6 +113,8 @@ def create_request():
 
 @app.route('/api/requests', methods=['GET'])
 def get_all_requests():
+    customer_id = request.args.get('customer_id', type=int)
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -126,19 +128,46 @@ def get_all_requests():
     """)
     conn.commit()
     
-    # Return active requests and join with username of customer
-    query = """
-        SELECT r.*, u.username as customer_name,
-               (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
-        FROM requests r
-        JOIN users u ON r.customer_id = u.id
-        WHERE r.status = 'active'
-        ORDER BY r.created_at DESC
-    """
-    rows = cursor.execute(query).fetchall()
-    conn.close()
+    if customer_id:
+        # Return all requests of this customer
+        query = """
+            SELECT r.*, u.username as customer_name,
+                   (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
+            FROM requests r
+            JOIN users u ON r.customer_id = u.id
+            WHERE r.customer_id = ?
+            ORDER BY r.created_at DESC
+        """
+        rows = cursor.execute(query, (customer_id,)).fetchall()
+    else:
+        # Return active requests and join with username of customer
+        query = """
+            SELECT r.*, u.username as customer_name,
+                   (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
+            FROM requests r
+            JOIN users u ON r.customer_id = u.id
+            WHERE r.status = 'active'
+            ORDER BY r.created_at DESC
+        """
+        rows = cursor.execute(query).fetchall()
 
     requests_list = [dict(row) for row in rows]
+    
+    # Fetch and attach bids for each request
+    for req in requests_list:
+        cursor.execute("""
+            SELECT b.*, u.username as seller_name, u.shop_name,
+                   COALESCE((SELECT AVG(rating) FROM reviews WHERE seller_id = b.seller_id), 0.0) as rating,
+                   COALESCE((SELECT COUNT(rating) FROM reviews WHERE seller_id = b.seller_id), 0) as rating_count
+            FROM bids b
+            JOIN users u ON b.seller_id = u.id
+            WHERE b.request_id = ?
+            ORDER BY b.price ASC
+        """, (req['id'],))
+        bids_rows = cursor.fetchall()
+        req['bids'] = [dict(bid_row) for bid_row in bids_rows]
+
+    conn.close()
     return jsonify(requests_list), 200
 
 @app.route('/api/requests/customer/<int:customer_id>', methods=['GET'])
@@ -266,6 +295,44 @@ def get_seller_bids(seller_id):
 
     bids_list = [dict(row) for row in rows]
     return jsonify(bids_list), 200
+
+@app.route('/api/bids', methods=['GET'])
+def get_bids_compat():
+    seller_id = request.args.get('seller_id', type=int)
+    if seller_id:
+        return get_seller_bids(seller_id)
+    return jsonify([]), 200
+
+@app.route('/api/bids', methods=['POST'])
+def place_bid_compat():
+    data = request.json
+    if not data or not data.get('request_id') or not data.get('seller_id') or not data.get('price') or not data.get('delivery_days'):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    request_id = data.get('request_id')
+    seller_id = data.get('seller_id')
+    price = data.get('price')
+    delivery_days = data.get('delivery_days')
+    notes = data.get('notes', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Check if request is still active
+        request_status = cursor.execute("SELECT status FROM requests WHERE id = ?", (request_id,)).fetchone()
+        if not request_status or request_status['status'] != 'active':
+            return jsonify({"error": "This request is no longer accepting bids"}), 400
+
+        cursor.execute(
+            "INSERT INTO bids (request_id, seller_id, price, delivery_days, notes) VALUES (?, ?, ?, ?, ?)",
+            (request_id, seller_id, price, delivery_days, notes)
+        )
+        conn.commit()
+        return jsonify({"message": "Bid submitted successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 
 # --- MESSAGES ROUTES ---

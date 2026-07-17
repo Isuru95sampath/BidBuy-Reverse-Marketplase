@@ -47,7 +47,7 @@ export default function SellerScreen() {
     try {
       const response = await axios.get(`${API_BASE_URL}/requests`);
       // Filter out completed/accepted requests
-      const openRequests = response.data.filter(r => r.status === 'pending');
+      const openRequests = (response.data || []).filter(r => r.status === 'active' || r.status === 'pending');
       setRequests(openRequests);
     } catch (err) {
       console.warn('Failed to load requests', err);
