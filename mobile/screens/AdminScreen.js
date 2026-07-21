@@ -118,7 +118,7 @@ export default function AdminScreen() {
   const handleDeleteBid = (bidId, price) => {
     Alert.alert(
       'Delete Quote',
-      `Are you sure you want to delete this bid of Rs. ${price.toLocaleString()}?`,
+      `Are you sure you want to delete this bid of Rs. ${(price || 0).toLocaleString()}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -257,7 +257,7 @@ export default function AdminScreen() {
               renderItem={({ item }) => (
                 <View style={styles.listItem}>
                   <View style={{flex: 1, marginRight: 10}}>
-                    <Text style={styles.itemTitle}>Rs. {item.price.toLocaleString()}</Text>
+                    <Text style={styles.itemTitle}>Rs. ${(item.price || 0).toLocaleString()}</Text>
                     <Text style={styles.itemSub}>On: {item.request_title} | By: {item.shop_name}</Text>
                   </View>
                   <TouchableOpacity 

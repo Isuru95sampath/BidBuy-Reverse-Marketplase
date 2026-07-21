@@ -78,23 +78,25 @@ export default function AuthScreen() {
         {!isLogin && (
           <View style={styles.roleContainer}>
             <TouchableOpacity 
+              activeOpacity={0.8}
               style={[styles.roleBtn, role === 'customer' && styles.activeRoleBtn]}
               onPress={() => setRole('customer')}
             >
-              <Text style={[styles.roleText, role === 'customer' && styles.activeRoleText]}>Customer</Text>
+              <Text style={[styles.roleText, role === 'customer' && styles.activeRoleText]}>👤 Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity 
+              activeOpacity={0.8}
               style={[styles.roleBtn, role === 'seller' && styles.activeRoleBtn]}
               onPress={() => setRole('seller')}
             >
-              <Text style={[styles.roleText, role === 'seller' && styles.activeRoleText]}>Seller</Text>
+              <Text style={[styles.roleText, role === 'seller' && styles.activeRoleText]}>🏬 Seller / Shop</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Inputs */}
         <TextInput
-          placeholder="Username"
+          placeholder="👤 Username"
           placeholderTextColor="#94a3b8"
           style={styles.input}
           value={username}
@@ -103,7 +105,7 @@ export default function AuthScreen() {
         />
 
         <TextInput
-          placeholder="Password"
+          placeholder="🔒 Password"
           placeholderTextColor="#94a3b8"
           secureTextEntry
           style={styles.input}
@@ -116,14 +118,14 @@ export default function AuthScreen() {
         {!isLogin && role === 'seller' && (
           <>
             <TextInput
-              placeholder="Shop / Business Name"
+              placeholder="🏬 Shop / Business Name"
               placeholderTextColor="#94a3b8"
               style={styles.input}
               value={shopName}
               onChangeText={setShopName}
             />
             <TextInput
-              placeholder="Business Registration Number"
+              placeholder="📝 Business Registration Number"
               placeholderTextColor="#94a3b8"
               style={styles.input}
               value={businessNo}

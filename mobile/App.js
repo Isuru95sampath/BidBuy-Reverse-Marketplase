@@ -67,19 +67,13 @@ export default function App() {
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {!user || !['customer', 'seller', 'admin'].includes(user.role) ? (
               <Stack.Screen name="Auth" component={AuthScreen} />
-            ) : (
-              <>
-                {user.role === 'customer' && (
-                  <Stack.Screen name="CustomerHome" component={CustomerScreen} />
-                )}
-                {user.role === 'seller' && (
-                  <Stack.Screen name="SellerHome" component={SellerScreen} />
-                )}
-                {user.role === 'admin' && (
-                  <Stack.Screen name="AdminHome" component={AdminScreen} />
-                )}
-              </>
-            )}
+            ) : user.role === 'customer' ? (
+              <Stack.Screen name="CustomerHome" component={CustomerScreen} />
+            ) : user.role === 'seller' ? (
+              <Stack.Screen name="SellerHome" component={SellerScreen} />
+            ) : user.role === 'admin' ? (
+              <Stack.Screen name="AdminHome" component={AdminScreen} />
+            ) : null}
           </Stack.Navigator>
         </NavigationContainer>
       </AuthContext.Provider>

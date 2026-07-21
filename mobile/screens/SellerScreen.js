@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity, Modal, Alert, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import axios from 'axios';
 import { Audio } from 'expo-av';
@@ -36,6 +36,7 @@ export default function SellerScreen() {
 
   // Toast Overlay
   const [toast, setToast] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const categories = [
     'All', 'Electronics', 'Clothing & Fashion', 'Furniture & Home', 'Books & Education',
@@ -78,6 +79,12 @@ export default function SellerScreen() {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchBrowseRequests(), fetchMyBids(), fetchReviews()]);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     fetchBrowseRequests();
     fetchMyBids();
@@ -85,7 +92,7 @@ export default function SellerScreen() {
     const interval = setInterval(() => {
       fetchBrowseRequests();
       fetchMyBids();
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -95,6 +102,11 @@ export default function SellerScreen() {
         { uri: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav' }
       );
       await sound.playAsync();
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
     } catch (e) {
       console.warn("Audio blocked:", e);
     }
@@ -116,7 +128,7 @@ export default function SellerScreen() {
 
         bids.forEach(bid => {
           if (bid.status === 'accepted' && !notifiedAccepted.includes(bid.id)) {
-            setToast(`🎉 Congratulations! Your bid of Rs. ${bid.price.toLocaleString()} for "${bid.request_title}" was accepted!`);
+            setToast(`🎉 Congratulations! Your bid of Rs. ${(bid.price || 0).toLocaleString()} for "${bid.request_title}" was accepted!`);
             playChime();
             notifiedAccepted.push(bid.id);
             changed = true;
@@ -151,7 +163,7 @@ export default function SellerScreen() {
       }
     };
 
-    const poll = setInterval(checkNotifications, 4000);
+    const poll = setInterval(checkNotifications, 8000);
     return () => clearInterval(poll);
   }, [showChatModal, activeChatRequest]);
 
@@ -182,7 +194,7 @@ export default function SellerScreen() {
   // Open Chat
   const openChat = async (bidItem) => {
     // Generate active chat mock request object
-    const reqObj = { id: bidItem.request_id, title: bidItem.request_title };
+    const reqObj = { id: bidItem.request_id, title: bidItem.request_title, customer_id: bidItem.customer_id };
     setActiveChatRequest(reqObj);
     try {
       const response = await axios.get(`${API_BASE_URL}/messages?request_id=${bidItem.request_id}`);
@@ -211,14 +223,11 @@ export default function SellerScreen() {
   // Send Message
   const sendMessage = async () => {
     if (!newMsg.trim()) return;
-    // Find customer ID by checking active chat requests in requests state (fallback fetch if needed)
-    // For simplicity, fetch messages endpoint returns sender/receiver details, but we can query it
     try {
-      // Get customer_id from first message if possible, or fall back
-      const customerId = messages.find(m => m.sender_id !== user.id)?.sender_id || 1; // Fallback to samanth
+      const customerId = activeChatRequest?.customer_id || messages.find(m => m.sender_id !== user?.id)?.sender_id || 1;
       const response = await axios.post(`${API_BASE_URL}/messages`, {
         request_id: activeChatRequest.id,
-        sender_id: user.id,
+        sender_id: user?.id,
         receiver_id: customerId,
         message: newMsg
       });
@@ -228,6 +237,49 @@ export default function SellerScreen() {
       Alert.alert('Error', 'Failed to send message');
     }
   };
+
+  const renderBrowseItem = useCallback(({ item }) => (
+    <View style={styles.requestCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.requestTitle}>{item.title}</Text>
+        <Text style={styles.requestCategory}>{item.category}</Text>
+      </View>
+      <Text style={styles.requestDesc}>{item.description}</Text>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailText}>💰 Budget: <Text style={{color: '#10b981', fontWeight: 'bold'}}>Rs. {(item.budget || 0).toLocaleString()}</Text></Text>
+        <Text style={styles.detailText}>📅 Deadline: {item.deadline}</Text>
+      </View>
+      <TouchableOpacity 
+        style={styles.quoteBtn} 
+        onPress={() => { setSelectedRequest(item); setShowBidModal(true); }}
+      >
+        <Text style={styles.quoteBtnText}>⚡ Submit Quote (Bid)</Text>
+      </TouchableOpacity>
+    </View>
+  ), [requests]);
+
+  const renderBidItem = useCallback(({ item }) => (
+    <View style={styles.requestCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.requestTitle}>{item.request_title}</Text>
+        <Text style={[
+          styles.statusLabel,
+          item.status === 'accepted' ? styles.statusAccepted : item.status === 'rejected' ? styles.statusRejected : styles.statusPending
+        ]}>
+          {item.status.toUpperCase()}
+        </Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailText}>Your Quote: <Text style={{color: '#3b82f6', fontWeight: 'bold'}}>Rs. {(item.price || 0).toLocaleString()}</Text></Text>
+        <Text style={styles.detailText}>Delivery: {item.delivery_days} Days</Text>
+      </View>
+      {item.status === 'accepted' && (
+        <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
+          <Text style={styles.chatBtnText}>💬 Chat with Customer</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  ), [myBids]);
 
   // Filter requests
   const filteredRequests = requests.filter(r => categoryFilter === 'All' || r.category === categoryFilter);
@@ -292,30 +344,14 @@ export default function SellerScreen() {
             data={filteredRequests}
             keyExtractor={item => item.id.toString()}
             contentContainerStyle={styles.listContainer}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No open requests found in this category.</Text>
               </View>
             }
-            renderItem={({ item }) => (
-              <View style={styles.requestCard}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.requestTitle}>{item.title}</Text>
-                  <Text style={styles.requestCategory}>{item.category}</Text>
-                </View>
-                <Text style={styles.requestDesc}>{item.description}</Text>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailText}>💰 Budget: <Text style={{color: '#10b981', fontWeight: 'bold'}}>Rs. {item.budget.toLocaleString()}</Text></Text>
-                  <Text style={styles.detailText}>📅 Deadline: {item.deadline}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.quoteBtn} 
-                  onPress={() => { setSelectedRequest(item); setShowBidModal(true); }}
-                >
-                  <Text style={styles.quoteBtnText}>⚡ Submit Quote (Bid)</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            renderItem={renderBrowseItem}
           />
         </>
       ) : (
@@ -324,33 +360,14 @@ export default function SellerScreen() {
           data={myBids}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.listContainer}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>You haven't placed any quotes yet.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.requestCard}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.requestTitle}>{item.request_title}</Text>
-                <Text style={[
-                  styles.statusLabel,
-                  item.status === 'accepted' ? styles.statusAccepted : item.status === 'rejected' ? styles.statusRejected : styles.statusPending
-                ]}>
-                  {item.status.toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailText}>Your Quote: <Text style={{color: '#3b82f6', fontWeight: 'bold'}}>Rs. {item.price.toLocaleString()}</Text></Text>
-                <Text style={styles.detailText}>Delivery: {item.delivery_days} Days</Text>
-              </View>
-              {item.status === 'accepted' && (
-                <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
-                  <Text style={styles.chatBtnText}>💬 Chat with Customer</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          renderItem={renderBidItem}
         />
       )}
 
@@ -360,7 +377,7 @@ export default function SellerScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Submit Quote</Text>
             <Text style={styles.label}>Item: {selectedRequest?.title}</Text>
-            <Text style={styles.label}>Customer Budget: Rs. {selectedRequest?.budget.toLocaleString()}</Text>
+            <Text style={styles.label}>Customer Budget: Rs. {selectedRequest?.budget?.toLocaleString() || '0'}</Text>
 
             <TextInput
               placeholder="Your Price (Rs.)"

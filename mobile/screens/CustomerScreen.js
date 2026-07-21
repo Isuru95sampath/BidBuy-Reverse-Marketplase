@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity, Modal, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import axios from 'axios';
 import { Audio } from 'expo-av';
@@ -28,6 +28,10 @@ export default function CustomerScreen() {
   // Toast State
   const [toast, setToast] = useState(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+
   const categories = [
     'Electronics', 'Clothing & Fashion', 'Furniture & Home', 'Books & Education',
     'Groceries', 'Toys & Hobbies', 'Sports & Outdoors', 'Automotive', 'Health & Beauty'
@@ -36,16 +40,22 @@ export default function CustomerScreen() {
   // Load Customer Requests
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/requests?customer_id=${user.id}`);
+      const response = await axios.get(`${API_BASE_URL}/requests?customer_id=${user?.id}`);
       setRequests(response.data);
     } catch (err) {
       console.warn('Failed to load requests', err);
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchRequests();
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     fetchRequests();
-    const interval = setInterval(fetchRequests, 5000);
+    const interval = setInterval(fetchRequests, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -56,6 +66,11 @@ export default function CustomerScreen() {
         { uri: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav' }
       );
       await sound.playAsync();
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
     } catch (e) {
       console.warn("Sound blocked:", e);
     }
@@ -77,7 +92,7 @@ export default function CustomerScreen() {
 
         bids.forEach(bid => {
           if (!notifiedBids.includes(bid.id)) {
-            setToast(`🔔 New bid of Rs. ${bid.price.toLocaleString()} from ${bid.shop_name} for "${bid.request_title}"!`);
+            setToast(`🔔 New bid of Rs. ${(bid.price || 0).toLocaleString()} from ${bid.shop_name} for "${bid.request_title}"!`);
             playSound();
             notifiedBids.push(bid.id);
             changed = true;
@@ -113,7 +128,7 @@ export default function CustomerScreen() {
       }
     };
 
-    const poll = setInterval(checkNotifications, 4000);
+    const poll = setInterval(checkNotifications, 8000);
     return () => clearInterval(poll);
   }, [showChatModal, activeChatRequest]);
 
@@ -149,7 +164,7 @@ export default function CustomerScreen() {
   const handleAcceptBid = async (bidId, price) => {
     Alert.alert(
       'Confirm Deal',
-      `Are you sure you want to accept this bid of Rs. ${price.toLocaleString()}?`,
+      `Are you sure you want to accept this bid of Rs. ${(price || 0).toLocaleString()}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -200,7 +215,7 @@ export default function CustomerScreen() {
     if (!newMsg.trim()) return;
     // Determine receiver (the seller of the selected bid or the one we are chatting with)
     // Find seller_id from bids
-    const sellerId = (activeChatRequest.bids || []).find(b => b.status === 'accepted' || b.status === 'pending')?.seller_id;
+    const sellerId = (activeChatRequest?.bids || []).find(b => b.status === 'accepted' || b.status === 'pending')?.seller_id;
     if (!sellerId) return;
 
     try {
@@ -217,17 +232,99 @@ export default function CustomerScreen() {
     }
   };
 
+  const renderRequestItem = useCallback(({ item }) => (
+    <View style={styles.requestCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.requestTitle}>{item.title}</Text>
+        <Text style={styles.requestCategory}>{item.category}</Text>
+      </View>
+      <Text style={styles.requestDesc}>{item.description}</Text>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailText}>💰 Budget: <Text style={{color: '#10b981', fontWeight: 'bold'}}>Rs. ${(item.budget || 0).toLocaleString()}</Text></Text>
+        <Text style={styles.detailText}>📅 Deadline: {item.deadline}</Text>
+      </View>
+
+      {/* Status Info */}
+      <View style={styles.statusRow}>
+        <Text style={styles.detailText}>Status: 
+          <Text style={[styles.statusText, item.status === 'accepted' ? styles.statusAccepted : styles.statusPending]}>
+            {" "}{item.status.toUpperCase()}
+          </Text>
+        </Text>
+        {item.status === 'accepted' && (
+          <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
+            <Text style={styles.chatBtnText}>💬 Chat with Seller</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Bids Section */}
+      <Text style={styles.bidsTitle}>Quotes received ({(item.bids || []).length})</Text>
+      {(item.bids || []).map(bid => (
+        <View key={bid.id} style={styles.bidRow}>
+          <View>
+            <Text style={styles.bidSeller}>{bid.shop_name}</Text>
+            <Text style={styles.bidDetails}>Delivery: {bid.delivery_days} days | Rating: ⭐ {bid.rating || 'N/A'}</Text>
+          </View>
+          <View style={{alignItems: 'flex-end'}}>
+            <Text style={styles.bidPrice}>Rs. ${(bid.price || 0).toLocaleString()}</Text>
+            {item.status === 'pending' && (
+              <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptBid(bid.id, bid.price)}>
+                <Text style={styles.acceptBtnText}>Accept</Text>
+              </TouchableOpacity>
+            )}
+            {bid.status === 'accepted' && (
+              <Text style={styles.acceptedLabel}>ACCEPTED</Text>
+            )}
+          </View>
+        </View>
+      ))}
+    </View>
+  ), [requests]);
+
+  const filteredRequests = requests.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Customer Dashboard</Text>
-          <Text style={styles.headerSub}>Hello, @{user.username}</Text>
+          <Text style={styles.headerSub}>Hello, @{user?.username}</Text>
         </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="🔍 Search requests..."
+          placeholderTextColor="#94a3b8"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {/* Category Filter */}
+      <View style={{height: 40, marginVertical: 10, paddingLeft: 16}}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {['All', ...categories].map(cat => (
+            <TouchableOpacity 
+              key={cat} 
+              style={[styles.catBtn, categoryFilter === cat && styles.activeCatBtn]}
+              onPress={() => setCategoryFilter(cat)}
+            >
+              <Text style={[styles.catText, categoryFilter === cat && styles.activeCatText]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Floating Notification Toast */}
@@ -239,63 +336,17 @@ export default function CustomerScreen() {
 
       {/* Main requests list */}
       <FlatList
-        data={requests}
+        data={filteredRequests}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listContainer}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No requests posted yet. Tap "New Request" to start receiving quotes!</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.requestCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.requestTitle}>{item.title}</Text>
-              <Text style={styles.requestCategory}>{item.category}</Text>
-            </View>
-            <Text style={styles.requestDesc}>{item.description}</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailText}>💰 Budget: <Text style={{color: '#10b981', fontWeight: 'bold'}}>Rs. {item.budget.toLocaleString()}</Text></Text>
-              <Text style={styles.detailText}>📅 Deadline: {item.deadline}</Text>
-            </View>
-
-            {/* Status Info */}
-            <View style={styles.statusRow}>
-              <Text style={styles.detailText}>Status: 
-                <Text style={[styles.statusText, item.status === 'accepted' ? styles.statusAccepted : styles.statusPending]}>
-                  {" "}{item.status.toUpperCase()}
-                </Text>
-              </Text>
-              {item.status === 'accepted' && (
-                <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
-                  <Text style={styles.chatBtnText}>💬 Chat with Seller</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Bids Section */}
-            <Text style={styles.bidsTitle}>Quotes received ({(item.bids || []).length})</Text>
-            {(item.bids || []).map(bid => (
-              <View key={bid.id} style={styles.bidRow}>
-                <View>
-                  <Text style={styles.bidSeller}>{bid.shop_name}</Text>
-                  <Text style={styles.bidDetails}>Delivery: {bid.delivery_days} days | Rating: ⭐ {bid.rating || 'N/A'}</Text>
-                </View>
-                <View style={{alignItems: 'flex-end'}}>
-                  <Text style={styles.bidPrice}>Rs. {bid.price.toLocaleString()}</Text>
-                  {item.status === 'pending' && (
-                    <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptBid(bid.id, bid.price)}>
-                      <Text style={styles.acceptBtnText}>Accept</Text>
-                    </TouchableOpacity>
-                  )}
-                  {bid.status === 'accepted' && (
-                    <Text style={styles.acceptedLabel}>ACCEPTED</Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        renderItem={renderRequestItem}
       />
 
       {/* Floating Action Button */}
@@ -746,6 +797,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sendBtnText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  searchInput: {
+    backgroundColor: '#1f2937',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: '#ffffff',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  catBtn: {
+    backgroundColor: '#1f2937',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
+    height: 32,
+    justifyContent: 'center',
+  },
+  activeCatBtn: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  catText: {
+    color: '#94a3b8',
+    fontSize: 12,
+  },
+  activeCatText: {
     color: '#ffffff',
     fontWeight: 'bold',
   }

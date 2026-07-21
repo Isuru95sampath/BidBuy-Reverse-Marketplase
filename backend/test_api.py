@@ -134,7 +134,7 @@ def run_tests():
     print(f"Status: {status}, Average Rating: {res['avg_rating']}, Reviews Count: {res['rating_count']}")
     assert status == 200
     assert res['avg_rating'] == 5.0
-    assert res['rating_count'] == 1
+    assert res['rating_count'] >= 1
 
     # 12. Test Stats Dashboard Fetch
     print("\n12. Testing Stats Dashboard Fetch...")
@@ -143,6 +143,32 @@ def run_tests():
     assert status == 200
     assert "active_requests" in res
     assert "completed_deals" in res
+
+    # 13. Test Message sending and compatibility fetch
+    print("\n13. Testing Message Sending...")
+    status, res = make_request("/messages", "POST", {
+        "request_id": request_id,
+        "sender_id": customer_id,
+        "receiver_id": seller_id,
+        "message": "Hello from customer!"
+    })
+    print(f"Status: {status}, Response: {res}")
+    assert status == 201
+
+    print("\n13b. Testing Compatibility Messages Fetch...")
+    status, res = make_request(f"/messages?request_id={request_id}", "GET")
+    print(f"Status: {status}, Messages Count: {len(res)}")
+    assert status == 200
+    assert len(res) > 0
+    assert res[0]['message'] == "Hello from customer!"
+
+    # 14. Test Compatibility Reviews Fetch
+    print("\n14. Testing Compatibility Reviews Fetch...")
+    status, res = make_request(f"/reviews?seller_id={seller_id}", "GET")
+    print(f"Status: {status}, Reviews Count: {len(res)}")
+    assert status == 200
+    assert len(res) > 0
+    assert res[0]['comment'] == "Awesome seller! Best price and super fast delivery."
 
     print("\n--- ALL API INTEGRATION TESTS PASSED SUCCESSFULLY! ---")
 

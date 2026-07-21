@@ -92,12 +92,19 @@ def create_request():
     
     # Expiration calculation
     expiry_hours = data.get('expiry_hours')
+    deadline = data.get('deadline')
     expires_at = None
     if expiry_hours:
         try:
             expires_at = (datetime.datetime.utcnow() + datetime.timedelta(hours=int(expiry_hours))).strftime('%Y-%m-%d %H:%M:%S')
         except ValueError:
             pass
+    elif deadline:
+        deadline = str(deadline).strip()
+        if len(deadline) == 10:  # YYYY-MM-DD
+            expires_at = f"{deadline} 23:59:59"
+        else:
+            expires_at = deadline
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -152,6 +159,8 @@ def get_all_requests():
         rows = cursor.execute(query).fetchall()
 
     requests_list = [dict(row) for row in rows]
+    for req in requests_list:
+        req['deadline'] = req.get('expires_at') or 'No Expiry'
     
     # Fetch and attach bids for each request
     for req in requests_list:
@@ -197,6 +206,8 @@ def get_customer_requests(customer_id):
     conn.close()
 
     requests_list = [dict(row) for row in rows]
+    for req in requests_list:
+        req['deadline'] = req.get('expires_at') or 'No Expiry'
     return jsonify(requests_list), 200
 
 
@@ -363,6 +374,30 @@ def send_message():
     
     return jsonify({"message": "Message sent successfully"}), 201
 
+@app.route('/api/messages', methods=['GET'])
+def get_messages_by_request():
+    request_id = request.args.get('request_id', type=int)
+    if not request_id:
+        return jsonify([]), 200
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = """
+            SELECT m.*, u.username as sender_name
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE m.request_id = ?
+            ORDER BY m.created_at ASC
+        """
+        rows = cursor.execute(query, (request_id,)).fetchall()
+        messages_list = [dict(row) for row in rows]
+        return jsonify(messages_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/api/messages/chat', methods=['GET'])
 def get_chat():
     request_id = request.args.get('request_id')
@@ -445,6 +480,29 @@ def submit_review():
         )
         conn.commit()
         return jsonify({"message": "Review submitted successfully!"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/reviews', methods=['GET'])
+def get_reviews_compat():
+    seller_id = request.args.get('seller_id', type=int)
+    if not seller_id:
+        return jsonify([]), 200
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        rows = cursor.execute("""
+            SELECT r.*, u.username as customer_name 
+            FROM reviews r 
+            JOIN users u ON r.customer_id = u.id 
+            WHERE r.seller_id = ? 
+            ORDER BY r.created_at DESC
+        """, (seller_id,)).fetchall()
+        reviews_list = [dict(row) for row in rows]
+        return jsonify(reviews_list), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -582,7 +640,10 @@ def get_admin_requests():
             JOIN users u ON r.customer_id = u.id
             ORDER BY r.created_at DESC
         """).fetchall()
-        return jsonify([dict(row) for row in rows]), 200
+        requests_list = [dict(row) for row in rows]
+        for req in requests_list:
+            req['deadline'] = req.get('expires_at') or 'No Expiry'
+        return jsonify(requests_list), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
