@@ -65,13 +65,13 @@ export default function App() {
       <AuthContext.Provider value={{ user, login, logout }}>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!user || !['customer', 'seller', 'admin'].includes(user.role) ? (
+            {!user || !['customer', 'seller', 'admin'].includes(user.role?.toLowerCase()) ? (
               <Stack.Screen name="Auth" component={AuthScreen} />
-            ) : user.role === 'customer' ? (
+            ) : user.role.toLowerCase() === 'customer' ? (
               <Stack.Screen name="CustomerHome" component={CustomerScreen} />
-            ) : user.role === 'seller' ? (
+            ) : user.role.toLowerCase() === 'seller' ? (
               <Stack.Screen name="SellerHome" component={SellerScreen} />
-            ) : user.role === 'admin' ? (
+            ) : user.role.toLowerCase() === 'admin' ? (
               <Stack.Screen name="AdminHome" component={AdminScreen} />
             ) : null}
           </Stack.Navigator>
