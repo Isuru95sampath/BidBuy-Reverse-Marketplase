@@ -1,23 +1,18 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import axios from 'axios';
 
+// Context
+import { AuthContext, API_BASE_URL } from './context';
+
 // Screens
 import AuthScreen from './screens/AuthScreen';
 import CustomerScreen from './screens/CustomerScreen';
 import SellerScreen from './screens/SellerScreen';
 import AdminScreen from './screens/AdminScreen';
-
-// Live PythonAnywhere API Endpoint
-export const API_BASE_URL = 'https://Sampath95.pythonanywhere.com/api';
-
-// Create Global Auth Context
-const AuthContext = createContext();
-
-export const useAuth = () => useContext(AuthContext);
 
 const Stack = createNativeStackNavigator();
 
@@ -65,15 +60,17 @@ export default function App() {
       <AuthContext.Provider value={{ user, login, logout }}>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!user || !['customer', 'seller', 'admin'].includes(user.role?.toLowerCase()) ? (
+            {user ? (
+              user.role?.toLowerCase() === 'customer' ? (
+                <Stack.Screen name="CustomerHome" component={CustomerScreen} />
+              ) : user.role?.toLowerCase() === 'seller' ? (
+                <Stack.Screen name="SellerHome" component={SellerScreen} />
+              ) : (
+                <Stack.Screen name="AdminHome" component={AdminScreen} />
+              )
+            ) : (
               <Stack.Screen name="Auth" component={AuthScreen} />
-            ) : user.role.toLowerCase() === 'customer' ? (
-              <Stack.Screen name="CustomerHome" component={CustomerScreen} />
-            ) : user.role.toLowerCase() === 'seller' ? (
-              <Stack.Screen name="SellerHome" component={SellerScreen} />
-            ) : user.role.toLowerCase() === 'admin' ? (
-              <Stack.Screen name="AdminHome" component={AdminScreen} />
-            ) : null}
+            )}
           </Stack.Navigator>
         </NavigationContainer>
       </AuthContext.Provider>

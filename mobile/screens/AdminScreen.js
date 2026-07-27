@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import axios from 'axios';
-import { useAuth, API_BASE_URL } from '../App';
+import { useAuth, API_BASE_URL } from '../context';
 
 export default function AdminScreen() {
   const { user, logout } = useAuth();

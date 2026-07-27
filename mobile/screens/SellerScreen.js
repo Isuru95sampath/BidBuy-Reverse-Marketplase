@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity, Modal, A
 import axios from 'axios';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth, API_BASE_URL } from '../App';
+import { useAuth, API_BASE_URL } from '../context';
 
 export default function SellerScreen() {
   const { user, logout } = useAuth();

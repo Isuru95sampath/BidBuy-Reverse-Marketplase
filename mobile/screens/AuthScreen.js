@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
-import { useAuth, API_BASE_URL } from '../App';
+import { useAuth, API_BASE_URL } from '../context';
 
 export default function AuthScreen() {
   const { login } = useAuth();
