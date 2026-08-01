@@ -253,14 +253,14 @@ class _SellerScreenState extends State<SellerScreen> {
                               return Card(
                                 color: cardColor,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.bottom(16),
+                                margin: const EdgeInsets.only(bottom: 16),
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.between,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(req['title'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                                           Chip(label: Text(req['category'] ?? 'General', style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: backgroundColor),
@@ -270,7 +270,7 @@ class _SellerScreenState extends State<SellerScreen> {
                                       Text(req['description'] ?? '', style: const TextStyle(color: textSecondaryColor)),
                                       const SizedBox(height: 12),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.between,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text('💰 Budget: Rs. ${req['budget']}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
                                           Text('📅 Deadline: ${req['deadline'] ?? 'No Expiry'}', style: const TextStyle(color: textSecondaryColor, fontSize: 11)),
@@ -310,14 +310,14 @@ class _SellerScreenState extends State<SellerScreen> {
                               return Card(
                                 color: cardColor,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.bottom(16),
+                                margin: const EdgeInsets.only(bottom: 16),
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.between,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(bid['request_title'] ?? 'Request', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                                           Text(status, style: TextStyle(color: statusCol, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -325,7 +325,7 @@ class _SellerScreenState extends State<SellerScreen> {
                                       ),
                                       const SizedBox(height: 12),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.between,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text('Your Quote: Rs. ${bid['price']}', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
                                           Text('Delivery: ${bid['delivery_days']} days', style: const TextStyle(color: textSecondaryColor)),

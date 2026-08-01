@@ -300,14 +300,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                             return Card(
                               color: cardColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.bottom(16),
+                              margin: const EdgeInsets.only(bottom: 16),
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.between,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(req['title'] ?? 'Request', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                                         Chip(
@@ -320,7 +320,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                     Text(req['description'] ?? '', style: const TextStyle(color: textSecondaryColor)),
                                     const SizedBox(height: 12),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.between,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text('💰 Budget: Rs. ${(req['budget'] ?? 0).toString()}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
                                         Text('📅 Deadline: ${req['deadline'] ?? 'No Expiry'}', style: const TextStyle(color: textSecondaryColor, fontSize: 11)),
@@ -336,7 +336,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                         margin: const EdgeInsets.only(bottom: 8),
                                         decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(8)),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.between,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,

@@ -150,7 +150,7 @@ class _AdminScreenState extends State<AdminScreen> {
     return Card(
       color: cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.bottom(16),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -175,7 +175,7 @@ class _AdminScreenState extends State<AdminScreen> {
         final u = users[index];
         return Card(
           color: cardColor,
-          margin: const EdgeInsets.bottom(12),
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text('@${u['username']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             subtitle: Text('Role: ${u['role'].toUpperCase()} ${u['role'] == 'seller' ? "(${u['shop_name']})" : ""}', style: const TextStyle(color: textSecondaryColor)),
@@ -197,7 +197,7 @@ class _AdminScreenState extends State<AdminScreen> {
         final r = requests[index];
         return Card(
           color: cardColor,
-          margin: const EdgeInsets.bottom(12),
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text(r['title'] ?? 'Request', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             subtitle: Text('By: @${r['customer_name']} | Bids: ${r['bid_count']}', style: const TextStyle(color: textSecondaryColor)),
@@ -219,7 +219,7 @@ class _AdminScreenState extends State<AdminScreen> {
         final b = bids[index];
         return Card(
           color: cardColor,
-          margin: const EdgeInsets.bottom(12),
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text('Rs. ${b['price']}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
             subtitle: Text('On: ${b['request_title']} | By: ${b['shop_name']}', style: const TextStyle(color: textSecondaryColor)),
