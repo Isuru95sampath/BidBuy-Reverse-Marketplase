@@ -201,9 +201,9 @@ class _AdminScreenState extends State<AdminScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildStatCard('Total Users', stats!['users_count'].toString(), 'Customers: ${stats!['customers_count']} | Sellers: ${stats!['sellers_count']}'),
-        _buildStatCard('Database File Size', '${(stats!['db_size_kb'] as num).toStringAsFixed(1)} KB', 'SQLite Active Storage'),
-        _buildStatCard('Platform Activities', '${stats!['requests_count'] + stats!['bids_count']}', 'Requests: ${stats!['requests_count']} | Bids: ${stats!['bids_count']}'),
+        _buildStatCard('Total Users', (stats!['total_users'] ?? 0).toString(), 'Customers: ${stats!['total_customers'] ?? 0} | Sellers: ${stats!['total_sellers'] ?? 0}'),
+        _buildStatCard('Database File Size', '${((stats!['db_size_kb'] ?? 0.0) as num).toStringAsFixed(1)} KB', 'SQLite Active Storage'),
+        _buildStatCard('Platform Activities', '${(stats!['total_requests'] ?? 0) + (stats!['total_bids'] ?? 0)}', 'Requests: ${stats!['total_requests'] ?? 0} | Bids: ${stats!['total_bids'] ?? 0}'),
       ],
     );
   }
