@@ -80,23 +80,27 @@ class _SellerScreenState extends State<SellerScreen> {
     final priceController = TextEditingController();
     final deliveryController = TextEditingController();
 
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final dialogBg = Theme.of(context).cardColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: cardColor,
+          backgroundColor: dialogBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Submit Quote (Bid)', style: TextStyle(color: Colors.white)),
+          title: Text('Submit Quote (Bid)', style: TextStyle(color: textColor)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Item: ${requestItem['title']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text('Item: ${requestItem['title']}', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
               Text('Customer Budget: Rs. ${requestItem['budget']}', style: const TextStyle(color: textSecondaryColor)),
               const SizedBox(height: 12),
               TextField(
                 controller: priceController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 decoration: const InputDecoration(
                   labelText: 'Your Price (Rs.)',
                   labelStyle: TextStyle(color: textSecondaryColor),
@@ -105,7 +109,7 @@ class _SellerScreenState extends State<SellerScreen> {
               TextField(
                 controller: deliveryController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: textColor),
                 decoration: const InputDecoration(
                   labelText: 'Delivery Days',
                   labelStyle: TextStyle(color: textSecondaryColor),

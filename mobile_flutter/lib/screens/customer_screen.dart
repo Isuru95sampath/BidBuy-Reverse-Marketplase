@@ -72,22 +72,26 @@ class _CustomerScreenState extends State<CustomerScreen> {
     String selectedCategory = categories.first;
     final deadlineController = TextEditingController();
 
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final dialogBg = Theme.of(context).cardColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
-              backgroundColor: cardColor,
+              backgroundColor: dialogBg,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('New Request', style: TextStyle(color: Colors.white)),
+              title: Text('New Request', style: TextStyle(color: textColor)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: titleController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
                         labelText: 'Title',
                         labelStyle: TextStyle(color: textSecondaryColor),
@@ -95,7 +99,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     ),
                     TextField(
                       controller: descController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
                         labelText: 'Description',
                         labelStyle: TextStyle(color: textSecondaryColor),
@@ -103,15 +107,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      dropdownColor: cardColor,
+                      dropdownColor: dialogBg,
                       value: selectedCategory,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
                         labelText: 'Category',
                         labelStyle: TextStyle(color: textSecondaryColor),
                       ),
                       items: categories.map((cat) {
-                        return DropdownMenuItem(value: cat, child: Text(cat));
+                        return DropdownMenuItem(value: cat, child: Text(cat, style: TextStyle(color: textColor)));
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
@@ -124,7 +128,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     TextField(
                       controller: budgetController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
                         labelText: 'Budget (Rs.)',
                         labelStyle: TextStyle(color: textSecondaryColor),
@@ -132,7 +136,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     ),
                     TextField(
                       controller: deadlineController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
                         labelText: 'Deadline (e.g. YYYY-MM-DD)',
                         labelStyle: TextStyle(color: textSecondaryColor),
@@ -176,12 +180,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
   }
 
   Future<void> _handleAcceptBid(int bidId, double price) async {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final dialogBg = Theme.of(context).cardColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: cardColor,
-        title: const Text('Confirm Deal', style: TextStyle(color: Colors.white)),
-        content: Text('Are you sure you want to accept this bid of Rs. ${price.toStringAsFixed(2)}?', style: const TextStyle(color: textSecondaryColor)),
+        backgroundColor: dialogBg,
+        title: Text('Confirm Deal', style: TextStyle(color: textColor)),
+        content: Text('Are you sure you want to accept this bid of Rs. ${price.toStringAsFixed(2)}?', style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[700])),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Accept')),

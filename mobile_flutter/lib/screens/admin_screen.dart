@@ -185,8 +185,11 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildStatCard(String label, String value, String desc) {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Card(
-      color: cardColor,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -196,7 +199,7 @@ class _AdminScreenState extends State<AdminScreen> {
           children: [
             Text(label, style: const TextStyle(color: textSecondaryColor, fontSize: 14)),
             const SizedBox(height: 8),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+            Text(value, style: TextStyle(color: textColor, fontSize: 28, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(desc, style: const TextStyle(color: textSecondaryColor, fontSize: 12)),
           ],
@@ -206,16 +209,19 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildUsersView() {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: users.length,
       itemBuilder: (context, index) {
         final u = users[index];
         return Card(
-          color: cardColor,
+          color: Theme.of(context).cardColor,
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            title: Text('@${u['username']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: Text('@${u['username']}', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
             subtitle: Text('Role: ${u['role'].toUpperCase()} ${u['role'] == 'seller' ? "(${u['shop_name']})" : ""}', style: const TextStyle(color: textSecondaryColor)),
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -228,16 +234,19 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildRequestsView() {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: requests.length,
       itemBuilder: (context, index) {
         final r = requests[index];
         return Card(
-          color: cardColor,
+          color: Theme.of(context).cardColor,
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            title: Text(r['title'] ?? 'Request', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: Text(r['title'] ?? 'Request', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
             subtitle: Text('By: @${r['customer_name']} | Bids: ${r['bid_count']}', style: const TextStyle(color: textSecondaryColor)),
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -256,7 +265,7 @@ class _AdminScreenState extends State<AdminScreen> {
       itemBuilder: (context, index) {
         final b = bids[index];
         return Card(
-          color: cardColor,
+          color: Theme.of(context).cardColor,
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text('Rs. ${b['price']}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
