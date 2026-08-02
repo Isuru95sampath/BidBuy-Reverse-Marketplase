@@ -11,37 +11,16 @@ import 'screens/admin_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Read stored user session
-  final prefs = await SharedPreferences.getInstance();
-  final userStr = prefs.getString('user');
-  Widget initialScreen = const AuthScreen();
-
   // Read stored theme preference
+  final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('isDarkTheme') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
 
-  if (userStr != null) {
-    try {
-      final user = jsonDecode(userStr);
-      final role = (user['role'] ?? '').toString().toLowerCase();
-      if (role == 'admin') {
-        initialScreen = const AdminScreen();
-      } else if (role == 'customer') {
-        initialScreen = const CustomerScreen();
-      } else {
-        initialScreen = const SellerScreen();
-      }
-    } catch (e) {
-      // Session parsing error
-    }
-  }
-
-  runApp(MyApp(initialScreen: initialScreen));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final Widget initialScreen;
-  const MyApp({super.key, required this.initialScreen});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +53,7 @@ class MyApp extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
           ),
-          home: initialScreen,
+          home: const HomeScreenRouter(),
           routes: {
             '/auth': (context) => const AuthScreen(),
             '/home': (context) => const HomeScreenRouter(),

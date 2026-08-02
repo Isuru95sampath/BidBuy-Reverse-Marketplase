@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
 
@@ -19,6 +21,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
   String searchQuery = '';
   String categoryFilter = 'All';
 
+  Timer? _timer;
+  int _totalBidsCount = 0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   final List<String> categories = [
     'Electronics', 'Clothing & Fashion', 'Furniture & Home', 'Books & Education',
     'Groceries', 'Toys & Hobbies', 'Sports & Outdoors', 'Automotive', 'Health & Beauty'
@@ -30,6 +36,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
     _loadUserAndData();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserAndData() async {
     final prefs = await SharedPreferences.getInstance();
     final userStr = prefs.getString('user');
@@ -37,27 +50,75 @@ class _CustomerScreenState extends State<CustomerScreen> {
       setState(() {
         user = jsonDecode(userStr);
       });
-      _fetchRequests();
+      await _fetchRequests(initial: true);
+      _startTimer();
     }
   }
 
-  Future<void> _fetchRequests() async {
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _pollRequests();
+    });
+  }
+
+  Future<void> _pollRequests() async {
+    if (!mounted) return;
+    await _fetchRequests();
+  }
+
+  Future<void> _fetchRequests({bool initial = false}) async {
     if (user == null) return;
-    setState(() {
-      isLoading = true;
-    });
-    final res = await ApiService.get('/requests?customer_id=${user!['id']}');
-    setState(() {
-      isLoading = false;
-    });
-    if (res['statusCode'] == 200) {
+    if (initial) {
       setState(() {
-        requests = res['data'];
+        isLoading = true;
+      });
+    }
+    final res = await ApiService.get('/requests?customer_id=${user!['id']}');
+    if (initial) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+    if (res['statusCode'] == 200) {
+      final List newRequests = res['data'] as List? ?? [];
+      
+      // Calculate total bids count
+      int newBidsCount = 0;
+      for (var req in newRequests) {
+        final bidsList = req['bids'] as List? ?? [];
+        newBidsCount += bidsList.length;
+      }
+
+      if (!initial && newBidsCount > _totalBidsCount) {
+        _playNotificationSound();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🔔 New quote received for your request! Check it out.'),
+              backgroundColor: primaryColor,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+
+      setState(() {
+        requests = newRequests;
+        _totalBidsCount = newBidsCount;
       });
     }
   }
 
+  Future<void> _playNotificationSound() async {
+    try {
+      await _audioPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'));
+    } catch (e) {
+      // Audio playback failed
+    }
+  }
+
   Future<void> _handleLogout() async {
+    _timer?.cancel();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user');
     if (mounted) {

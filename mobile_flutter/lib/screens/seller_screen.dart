@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
 
@@ -20,6 +22,10 @@ class _SellerScreenState extends State<SellerScreen> {
   String activeTab = 'browse'; // 'browse' or 'placed'
   String categoryFilter = 'All';
 
+  Timer? _timer;
+  int _acceptedBidsCount = 0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   final List<String> categories = [
     'All', 'Electronics', 'Clothing & Fashion', 'Furniture & Home', 'Books & Education',
     'Groceries', 'Toys & Hobbies', 'Sports & Outdoors', 'Automotive', 'Health & Beauty'
@@ -31,6 +37,13 @@ class _SellerScreenState extends State<SellerScreen> {
     _loadUserAndData();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserAndData() async {
     final prefs = await SharedPreferences.getInstance();
     final userStr = prefs.getString('user');
@@ -38,23 +51,38 @@ class _SellerScreenState extends State<SellerScreen> {
       setState(() {
         user = jsonDecode(userStr);
       });
-      _fetchData();
+      await _fetchData(initial: true);
+      _startTimer();
     }
   }
 
-  Future<void> _fetchData() async {
-    if (user == null) return;
-    setState(() {
-      isLoading = true;
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _pollData();
     });
+  }
+
+  Future<void> _pollData() async {
+    if (!mounted) return;
+    await _fetchData();
+  }
+
+  Future<void> _fetchData({bool initial = false}) async {
+    if (user == null) return;
+    if (initial) {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     final browseRes = await ApiService.get('/requests');
-    // For mobile compatibility, fetch bids placed by this seller
     final bidsRes = await ApiService.get('/bids?seller_id=${user!['id']}');
 
-    setState(() {
-      isLoading = false;
-    });
+    if (initial) {
+      setState(() {
+        isLoading = false;
+      });
+    }
 
     if (browseRes['statusCode'] == 200) {
       setState(() {
@@ -62,13 +90,46 @@ class _SellerScreenState extends State<SellerScreen> {
       });
     }
     if (bidsRes['statusCode'] == 200) {
+      final List newBids = bidsRes['data'] as List? ?? [];
+      
+      // Calculate accepted bids count
+      int newAcceptedCount = 0;
+      for (var bid in newBids) {
+        if (bid['status'] == 'accepted') {
+          newAcceptedCount++;
+        }
+      }
+
+      if (!initial && newAcceptedCount > _acceptedBidsCount) {
+        _playNotificationSound();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🎉 Congratulations! Your bid has been ACCEPTED by the customer!'),
+              backgroundColor: accentColor,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+
       setState(() {
-        myBids = bidsRes['data'];
+        myBids = newBids;
+        _acceptedBidsCount = newAcceptedCount;
       });
     }
   }
 
+  Future<void> _playNotificationSound() async {
+    try {
+      await _audioPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'));
+    } catch (e) {
+      // Audio playback failed
+    }
+  }
+
   Future<void> _handleLogout() async {
+    _timer?.cancel();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user');
     if (mounted) {
