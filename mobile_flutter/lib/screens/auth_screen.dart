@@ -56,7 +56,7 @@ class _AuthScreenState extends State<AuthScreen> {
         isLoading = false;
       });
 
-      if (res['statusCode'] == 200) {
+      if (res['statusCode'] == 200 && res['data'] != null && res['data']['user'] != null) {
         final userData = res['data']['user'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user', jsonEncode(userData));
@@ -65,7 +65,9 @@ class _AuthScreenState extends State<AuthScreen> {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
-        final errMsg = res['data']['error'] ?? 'Login failed';
+        final errMsg = (res['data'] != null && res['data']['error'] != null)
+            ? res['data']['error'].toString()
+            : 'Login failed';
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $errMsg')),

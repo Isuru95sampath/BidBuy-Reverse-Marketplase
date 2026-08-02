@@ -88,6 +88,15 @@ class _SellerScreenState extends State<SellerScreen> {
       setState(() {
         browseRequests = browseRes['data'];
       });
+    } else {
+      final errMsg = (browseRes['data'] != null && browseRes['data']['error'] != null)
+          ? browseRes['data']['error'].toString()
+          : 'Failed to load requests';
+      if (mounted && initial) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $errMsg')),
+        );
+      }
     }
     if (bidsRes['statusCode'] == 200) {
       final List newBids = bidsRes['data'] as List? ?? [];
@@ -117,6 +126,15 @@ class _SellerScreenState extends State<SellerScreen> {
         myBids = newBids;
         _acceptedBidsCount = newAcceptedCount;
       });
+    } else {
+      final errMsg = (bidsRes['data'] != null && bidsRes['data']['error'] != null)
+          ? bidsRes['data']['error'].toString()
+          : 'Failed to load your bids';
+      if (mounted && initial) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $errMsg')),
+        );
+      }
     }
   }
 

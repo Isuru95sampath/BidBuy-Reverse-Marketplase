@@ -10,14 +10,22 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
+      
+      dynamic parsedData;
+      try {
+        parsedData = jsonDecode(response.body);
+      } catch (e) {
+        parsedData = {'error': 'Server error (${response.statusCode}). Please try again.'};
+      }
+
       return {
         'statusCode': response.statusCode,
-        'data': jsonDecode(response.body),
+        'data': parsedData,
       };
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': e.toString()},
+        'data': {'error': 'Network connection failed. Please check your internet connection.'},
       };
     }
   }
@@ -28,14 +36,22 @@ class ApiService {
         Uri.parse('$API_BASE_URL$endpoint'),
         headers: {'Content-Type': 'application/json'},
       );
+
+      dynamic parsedData;
+      try {
+        parsedData = jsonDecode(response.body);
+      } catch (e) {
+        parsedData = {'error': 'Server error (${response.statusCode}). Please try again.'};
+      }
+
       return {
         'statusCode': response.statusCode,
-        'data': jsonDecode(response.body),
+        'data': parsedData,
       };
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': e.toString()},
+        'data': {'error': 'Network connection failed. Please check your internet connection.'},
       };
     }
   }
@@ -46,14 +62,22 @@ class ApiService {
         Uri.parse('$API_BASE_URL$endpoint'),
         headers: {'Content-Type': 'application/json'},
       );
+
+      dynamic parsedData;
+      try {
+        parsedData = jsonDecode(response.body);
+      } catch (e) {
+        parsedData = {'error': 'Server error (${response.statusCode}). Please try again.'};
+      }
+
       return {
         'statusCode': response.statusCode,
-        'data': jsonDecode(response.body),
+        'data': parsedData,
       };
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': e.toString()},
+        'data': {'error': 'Network connection failed. Please check your internet connection.'},
       };
     }
   }

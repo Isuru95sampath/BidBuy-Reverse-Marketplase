@@ -106,6 +106,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
         requests = newRequests;
         _totalBidsCount = newBidsCount;
       });
+    } else {
+      final errMsg = (res['data'] != null && res['data']['error'] != null)
+          ? res['data']['error'].toString()
+          : 'Failed to load requests';
+      if (mounted && initial) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $errMsg')),
+        );
+      }
     }
   }
 

@@ -40,10 +40,34 @@ class _AdminScreenState extends State<AdminScreen> {
       isLoading = false;
     });
 
-    if (statsRes['statusCode'] == 200) stats = statsRes['data'];
-    if (usersRes['statusCode'] == 200) users = usersRes['data'];
-    if (requestsRes['statusCode'] == 200) requests = requestsRes['data'];
-    if (bidsRes['statusCode'] == 200) bids = bidsRes['data'];
+    if (statsRes['statusCode'] == 200) {
+      setState(() {
+        stats = statsRes['data'];
+      });
+    }
+    if (usersRes['statusCode'] == 200) {
+      setState(() {
+        users = usersRes['data'];
+      });
+    }
+    if (requestsRes['statusCode'] == 200) {
+      setState(() {
+        requests = requestsRes['data'];
+      });
+    }
+    if (bidsRes['statusCode'] == 200) {
+      setState(() {
+        bids = bidsRes['data'];
+      });
+    }
+
+    if (statsRes['statusCode'] != 200 || usersRes['statusCode'] != 200 || requestsRes['statusCode'] != 200 || bidsRes['statusCode'] != 200) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Warning: Some admin dashboard statistics failed to load.')),
+        );
+      }
+    }
   }
 
   Future<void> _handleDeleteUser(int userId) async {
