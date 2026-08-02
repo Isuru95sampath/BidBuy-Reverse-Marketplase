@@ -112,13 +112,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+
     return Scaffold(
-      backgroundColor: backgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Card(
-            color: cardColor,
+            color: Theme.of(context).cardColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 4,
             child: Padding(
@@ -167,7 +168,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               'Log In',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: isLogin ? Colors.white : textSecondaryColor,
+                                color: isLogin ? (isDark ? Colors.white : Colors.black87) : textSecondaryColor,
                                 fontWeight: isLogin ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
@@ -191,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               'Register',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: !isLogin ? Colors.white : textSecondaryColor,
+                                color: !isLogin ? (isDark ? Colors.white : Colors.black87) : textSecondaryColor,
                                 fontWeight: !isLogin ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
@@ -210,13 +211,13 @@ class _AuthScreenState extends State<AuthScreen> {
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               backgroundColor: role == 'customer' ? primaryColor : Colors.transparent,
-                              side: BorderSide(color: role == 'customer' ? primaryColor : cardColor),
+                              side: BorderSide(color: role == 'customer' ? primaryColor : (isDark ? Colors.grey[800]! : Colors.grey[300]!)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () => setState(() => role = 'customer'),
                             child: Text(
                               '👤 Customer',
-                              style: TextStyle(color: role == 'customer' ? Colors.white : textSecondaryColor),
+                              style: TextStyle(color: role == 'customer' ? Colors.white : (isDark ? textSecondaryColor : Colors.black54)),
                             ),
                           ),
                         ),
@@ -225,13 +226,13 @@ class _AuthScreenState extends State<AuthScreen> {
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               backgroundColor: role == 'seller' ? primaryColor : Colors.transparent,
-                              side: BorderSide(color: role == 'seller' ? primaryColor : cardColor),
+                              side: BorderSide(color: role == 'seller' ? primaryColor : (isDark ? Colors.grey[800]! : Colors.grey[300]!)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () => setState(() => role = 'seller'),
                             child: Text(
                               '🏬 Seller / Shop',
-                              style: TextStyle(color: role == 'seller' ? Colors.white : textSecondaryColor),
+                              style: TextStyle(color: role == 'seller' ? Colors.white : (isDark ? textSecondaryColor : Colors.black54)),
                             ),
                           ),
                         ),
@@ -243,12 +244,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   // Username Input
                   TextField(
                     controller: _usernameController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       hintText: '👤 Username',
                       hintStyle: const TextStyle(color: textSecondaryColor),
                       filled: true,
-                      fillColor: backgroundColor,
+                      fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     ),
                   ),
@@ -258,12 +259,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
                       hintText: '🔒 Password',
                       hintStyle: const TextStyle(color: textSecondaryColor),
                       filled: true,
-                      fillColor: backgroundColor,
+                      fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     ),
                   ),
@@ -273,24 +274,24 @@ class _AuthScreenState extends State<AuthScreen> {
                   if (!isLogin && role == 'seller') ...[
                     TextField(
                       controller: _shopNameController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         hintText: '🏬 Shop / Business Name',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
-                        fillColor: backgroundColor,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _businessNoController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         hintText: '📝 Business Registration Number',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
-                        fillColor: backgroundColor,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                       ),
                     ),

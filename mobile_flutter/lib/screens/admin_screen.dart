@@ -71,15 +71,33 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = themeNotifier.value == ThemeMode.dark;
+
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: cardColor,
         elevation: 0,
-        title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            onPressed: () async {
+              themeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('isDarkTheme', !isDark);
+              setState(() {});
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.logout, color: isDark ? Colors.white : Colors.black87),
             onPressed: _handleLogout,
           ),
         ],
@@ -90,26 +108,46 @@ class _AdminScreenState extends State<AdminScreen> {
           children: [
             // Tab Switcher
             Container(
-              color: cardColor,
+              color: Theme.of(context).cardColor,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
                     TextButton(
                       onPressed: () => setState(() => activeTab = 'stats'),
-                      child: Text('Stats', style: TextStyle(color: activeTab == 'stats' ? primaryColor : textSecondaryColor)),
+                      child: Text(
+                        'Stats',
+                        style: TextStyle(
+                          color: activeTab == 'stats' ? primaryColor : (isDark ? textSecondaryColor : Colors.grey[600]),
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => setState(() => activeTab = 'users'),
-                      child: Text('Users', style: TextStyle(color: activeTab == 'users' ? primaryColor : textSecondaryColor)),
+                      child: Text(
+                        'Users',
+                        style: TextStyle(
+                          color: activeTab == 'users' ? primaryColor : (isDark ? textSecondaryColor : Colors.grey[600]),
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => setState(() => activeTab = 'requests'),
-                      child: Text('Requests', style: TextStyle(color: activeTab == 'requests' ? primaryColor : textSecondaryColor)),
+                      child: Text(
+                        'Requests',
+                        style: TextStyle(
+                          color: activeTab == 'requests' ? primaryColor : (isDark ? textSecondaryColor : Colors.grey[600]),
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => setState(() => activeTab = 'bids'),
-                      child: Text('Quotes', style: TextStyle(color: activeTab == 'bids' ? primaryColor : textSecondaryColor)),
+                      child: Text(
+                        'Quotes',
+                        style: TextStyle(
+                          color: activeTab == 'bids' ? primaryColor : (isDark ? textSecondaryColor : Colors.grey[600]),
+                        ),
+                      ),
                     ),
                   ],
                 ),

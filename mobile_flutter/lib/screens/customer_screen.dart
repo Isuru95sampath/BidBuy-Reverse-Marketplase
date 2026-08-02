@@ -207,22 +207,47 @@ class _CustomerScreenState extends State<CustomerScreen> {
       return matchesSearch && matchesCategory;
     }).toList();
 
+    final isDark = themeNotifier.value == ThemeMode.dark;
+
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: cardColor,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Customer Dashboard', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
+            Text(
+              'Customer Dashboard',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
             if (user != null)
-              Text('Hello, @${user!['username']}', style: const TextStyle(color: textSecondaryColor, fontSize: 12)),
+              Text(
+                'Hello, @${user!['username']}',
+                style: TextStyle(
+                  color: isDark ? textSecondaryColor : Colors.grey[600],
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            onPressed: () async {
+              themeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('isDarkTheme', !isDark);
+              setState(() {});
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.logout, color: isDark ? Colors.white : Colors.black87),
             onPressed: _handleLogout,
           ),
         ],
@@ -235,12 +260,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   hintText: '🔍 Search requests...',
                   hintStyle: const TextStyle(color: textSecondaryColor),
                   filled: true,
-                  fillColor: cardColor,
+                  fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 ),
                 onChanged: (val) {
@@ -267,8 +292,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       label: Text(cat),
                       selected: isSelected,
                       selectedColor: primaryColor,
-                      backgroundColor: cardColor,
-                      labelStyle: TextStyle(color: isSelected ? Colors.white : textSecondaryColor),
+                      backgroundColor: Theme.of(context).cardColor,
+                      labelStyle: TextStyle(color: isSelected ? Colors.white : (isDark ? textSecondaryColor : Colors.black87)),
                       onSelected: (selected) {
                         if (selected) {
                           setState(() {
@@ -298,7 +323,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                             final isPending = req['status'] == 'pending' || req['status'] == 'active';
 
                             return Card(
-                              color: cardColor,
+                              color: Theme.of(context).cardColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               margin: const EdgeInsets.only(bottom: 16),
                               child: Padding(
@@ -309,40 +334,71 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(req['title'] ?? 'Request', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        Text(
+                                          req['title'] ?? 'Request',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : Colors.black87,
+                                          ),
+                                        ),
                                         Chip(
-                                          label: Text(req['category'] ?? 'General', style: const TextStyle(fontSize: 10, color: Colors.white)),
-                                          backgroundColor: backgroundColor,
+                                          label: Text(
+                                            req['category'] ?? 'General',
+                                            style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.black87),
+                                          ),
+                                          backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[200],
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
-                                    Text(req['description'] ?? '', style: const TextStyle(color: textSecondaryColor)),
+                                    Text(
+                                      req['description'] ?? '',
+                                      style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[800]),
+                                    ),
                                     const SizedBox(height: 12),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text('💰 Budget: Rs. ${(req['budget'] ?? 0).toString()}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-                                        Text('📅 Deadline: ${req['deadline'] ?? 'No Expiry'}', style: const TextStyle(color: textSecondaryColor, fontSize: 11)),
+                                        Text(
+                                          '📅 Deadline: ${req['deadline'] ?? 'No Expiry'}',
+                                          style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 11),
+                                        ),
                                       ],
                                     ),
-                                    const Divider(color: backgroundColor, height: 24),
-                                    Text('Quotes received (${bids.length})', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                    Divider(color: isDark ? const Color(0xFF0F172A) : Colors.grey[200], height: 24),
+                                    Text(
+                                      'Quotes received (${bids.length})',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                                    ),
                                     const SizedBox(height: 8),
                                     ...bids.map((bid) {
                                       final isAccepted = bid['status'] == 'accepted';
                                       return Container(
                                         padding: const EdgeInsets.all(10),
                                         margin: const EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(8)),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(bid['shop_name'] ?? 'Shop', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                Text('Delivery: ${bid['delivery_days']} days | Rating: ⭐ ${bid['rating']}', style: const TextStyle(color: textSecondaryColor, fontSize: 10)),
+                                                Text(
+                                                  bid['shop_name'] ?? 'Shop',
+                                                  style: TextStyle(
+                                                    color: isDark ? Colors.white : Colors.black87,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Delivery: ${bid['delivery_days']} days | Rating: ⭐ ${bid['rating']}',
+                                                  style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 10),
+                                                ),
                                               ],
                                             ),
                                             Column(
