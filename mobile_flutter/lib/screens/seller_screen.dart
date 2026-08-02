@@ -396,7 +396,7 @@ class _SellerScreenState extends State<SellerScreen> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text('💰 Budget: Rs. ${req['budget']}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                                          Text('💰 Budget: Rs. ${req['budget'] ?? 0}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
                                           Text(
                                             '📅 Deadline: ${req['deadline'] ?? 'No Expiry'}',
                                             style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 11),
@@ -461,9 +461,9 @@ class _SellerScreenState extends State<SellerScreen> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text('Your Quote: Rs. ${bid['price']}', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+                                          Text('Your Quote: Rs. ${bid['price'] ?? 0}', style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
                                           Text(
-                                            'Delivery: ${bid['delivery_days']} days',
+                                            'Delivery: ${bid['delivery_days'] ?? 1} days',
                                             style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600]),
                                           ),
                                         ],

@@ -474,7 +474,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                                   ),
                                                 ),
                                                 Text(
-                                                  'Delivery: ${bid['delivery_days']} days | Rating: ⭐ ${bid['rating']}',
+                                                  'Delivery: ${bid['delivery_days'] ?? 1} days | Rating: ⭐ ${bid['rating'] ?? 5.0}',
                                                   style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 10),
                                                 ),
                                               ],
@@ -482,11 +482,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.end,
                                               children: [
-                                                Text('Rs. ${bid['price']}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                                                Text('Rs. ${bid['price'] ?? 0}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
                                                 if (isPending && bid['status'] != 'accepted')
                                                   ElevatedButton(
                                                     style: ElevatedButton.styleFrom(backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
-                                                    onPressed: () => _handleAcceptBid(bid['id'], (bid['price'] as num).toDouble()),
+                                                    onPressed: () => _handleAcceptBid(bid['id'], double.tryParse(bid['price'].toString()) ?? 0.0),
                                                     child: const Text('Accept', style: TextStyle(fontSize: 10, color: Colors.white)),
                                                   )
                                                 else if (isAccepted)
