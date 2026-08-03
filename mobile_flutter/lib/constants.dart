@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const String API_BASE_URL = 'http://10.76.147.209:5080/api';
+const String API_BASE_URL = 'https://Sampath95.pythonanywhere.com/api';
 
 // Theme Colors
 const Color primaryColor = Color(0xFF3B82F6); // Vibrant Indigo/Blue
