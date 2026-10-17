@@ -9,7 +9,7 @@ class ApiService {
         Uri.parse('$API_BASE_URL$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
-      );
+      ).timeout(const Duration(seconds: 10));
       
       dynamic parsedData;
       try {
@@ -25,7 +25,7 @@ class ApiService {
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': 'Network connection failed. Please check your internet connection.'},
+        'data': {'error': 'Cannot connect to server. Check Wi-Fi or server status.'},
       };
     }
   }
@@ -35,7 +35,7 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$API_BASE_URL$endpoint'),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(const Duration(seconds: 10));
 
       dynamic parsedData;
       try {
@@ -51,7 +51,7 @@ class ApiService {
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': 'Network connection failed. Please check your internet connection.'},
+        'data': {'error': 'Cannot connect to server. Check Wi-Fi or server status.'},
       };
     }
   }
@@ -61,7 +61,7 @@ class ApiService {
       final response = await http.delete(
         Uri.parse('$API_BASE_URL$endpoint'),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(const Duration(seconds: 10));
 
       dynamic parsedData;
       try {
@@ -77,7 +77,7 @@ class ApiService {
     } catch (e) {
       return {
         'statusCode': 500,
-        'data': {'error': 'Network connection failed. Please check your internet connection.'},
+        'data': {'error': 'Cannot connect to server. Check Wi-Fi or server status.'},
       };
     }
   }

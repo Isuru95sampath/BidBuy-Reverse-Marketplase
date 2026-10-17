@@ -108,14 +108,17 @@ class _AuthScreenState extends State<AuthScreen> {
       if (res['statusCode'] == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registered successfully! Please log in.')),
+            const SnackBar(content: Text('Registered successfully! Please enter your password to log in.')),
           );
         }
         setState(() {
           isLogin = true;
+          _passwordController.clear();
         });
       } else {
-        final errMsg = res['data']['error'] ?? 'Registration failed';
+        final errMsg = (res['data'] != null && res['data']['error'] != null)
+            ? res['data']['error'].toString()
+            : 'Registration failed';
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $errMsg')),
