@@ -157,7 +157,7 @@ class _SellerScreenState extends State<SellerScreen> {
 
   Future<void> _showSubmitBidDialog(Map<String, dynamic> requestItem) async {
     final priceController = TextEditingController();
-    final deliveryController = TextEditingController();
+    final deliveryController = TextEditingController(text: '2');
 
     final isDark = themeNotifier.value == ThemeMode.dark;
     final dialogBg = Theme.of(context).cardColor;
@@ -169,29 +169,40 @@ class _SellerScreenState extends State<SellerScreen> {
         return AlertDialog(
           backgroundColor: dialogBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Submit Quote (Bid)', style: TextStyle(color: textColor)),
+          title: Row(
+            children: [
+              const Icon(Icons.local_offer_outlined, color: primaryColor, size: 22),
+              const SizedBox(width: 8),
+              Text('Submit Quote (Bid)', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Item: ${requestItem['title']}', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-              Text('Customer Budget: Rs. ${requestItem['budget']}', style: const TextStyle(color: textSecondaryColor)),
-              const SizedBox(height: 12),
+              Text('Item: ${requestItem['title'] ?? 'Request'}', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 4),
+              Text('Customer Budget: Rs. ${requestItem['budget'] ?? 0}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 14),
               TextField(
                 controller: priceController,
                 keyboardType: TextInputType.number,
                 style: TextStyle(color: textColor),
                 decoration: const InputDecoration(
-                  labelText: 'Your Price (Rs.)',
+                  labelText: 'Your Offer Price (Rs.)',
                   labelStyle: TextStyle(color: textSecondaryColor),
+                  prefixText: 'Rs. ',
                 ),
               ),
+              const SizedBox(height: 10),
               TextField(
                 controller: deliveryController,
                 keyboardType: TextInputType.number,
                 style: TextStyle(color: textColor),
                 decoration: const InputDecoration(
-                  labelText: 'Delivery Days',
+                  labelText: 'Delivery Days Needed',
                   labelStyle: TextStyle(color: textSecondaryColor),
+                  suffixText: 'days',
                 ),
               ),
             ],
@@ -204,20 +215,39 @@ class _SellerScreenState extends State<SellerScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
               onPressed: () async {
-                if (priceController.text.isEmpty || deliveryController.text.isEmpty) return;
+                final priceText = priceController.text.trim();
+                final deliveryText = deliveryController.text.trim();
+
+                if (priceText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter your offer price')),
+                  );
+                  return;
+                }
+                if (deliveryText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter estimated delivery days')),
+                  );
+                  return;
+                }
 
                 final res = await ApiService.post('/requests/${requestItem['id']}/bids', {
                   'seller_id': user!['id'],
-                  'price': double.tryParse(priceController.text) ?? 0.0,
-                  'delivery_days': int.tryParse(deliveryController.text) ?? 1,
+                  'price': double.tryParse(priceText) ?? 0.0,
+                  'delivery_days': int.tryParse(deliveryText) ?? 1,
                 });
 
                 if (res['statusCode'] == 201) {
                   _fetchData();
-                  if (mounted) Navigator.pop(ctx);
+                  if (mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Quote submitted successfully to customer!')),
+                    );
+                  }
                 }
               },
-              child: const Text('Submit Quote', style: TextStyle(color: Colors.white)),
+              child: const Text('Send Quote', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -352,7 +382,25 @@ class _SellerScreenState extends State<SellerScreen> {
                 child: isLoading && browseRequests.isEmpty
                     ? const Center(child: CircularProgressIndicator())
                     : filteredRequests.isEmpty
-                        ? const Center(child: Text('No requests found.', style: TextStyle(color: textSecondaryColor)))
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.search_off_outlined, size: 64, color: textSecondaryColor.withOpacity(0.5)),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    categoryFilter != 'All'
+                                        ? 'No active requests in "$categoryFilter".\nTry choosing "All" to see all requests!'
+                                        : 'No active requests right now.\nCustomers post new requests throughout the day, check back soon!',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: textSecondaryColor, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: filteredRequests.length,
@@ -422,7 +470,23 @@ class _SellerScreenState extends State<SellerScreen> {
                 child: isLoading && myBids.isEmpty
                     ? const Center(child: CircularProgressIndicator())
                     : myBids.isEmpty
-                        ? const Center(child: Text("You haven't placed any quotes yet.", style: TextStyle(color: textSecondaryColor)))
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.local_offer_outlined, size: 64, color: textSecondaryColor.withOpacity(0.5)),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    "You haven't submitted any quotes yet.\n\nTap 'Browse Requests' above to find items you can supply and send your best price!",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: textSecondaryColor, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: myBids.length,

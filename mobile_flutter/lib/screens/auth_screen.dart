@@ -14,6 +14,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   bool isLogin = true;
   String role = 'customer'; // 'customer' or 'seller'
+  bool _obscurePassword = true;
   
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -34,9 +35,21 @@ class _AuthScreenState extends State<AuthScreen> {
     final shopName = _shopNameController.text.trim();
     final businessNo = _businessNoController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please enter your username')),
+      );
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your password')),
+      );
+      return;
+    }
+    if (!isLogin && role == 'seller' && shopName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your shop or business name')),
       );
       return;
     }
@@ -130,14 +143,34 @@ class _AuthScreenState extends State<AuthScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'BidBuy',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 40),
+                      const Text(
+                        'BidBuy',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          isDark ? Icons.light_mode : Icons.dark_mode,
+                          color: isDark ? Colors.amber : Colors.grey[700],
+                          size: 22,
+                        ),
+                        tooltip: isDark ? 'Switch to Day Mode' : 'Switch to Night Mode',
+                        onPressed: () async {
+                          themeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('isDarkTheme', !isDark);
+                          setState(() {});
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   const Text(
@@ -248,7 +281,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     controller: _usernameController,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
-                      hintText: '👤 Username',
+                      prefixIcon: const Icon(Icons.person_outline, color: textSecondaryColor, size: 20),
+                      hintText: 'Username',
                       hintStyle: const TextStyle(color: textSecondaryColor),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
@@ -257,13 +291,26 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Password Input
+                  // Password Input with show/hide toggle
                   TextField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                     decoration: InputDecoration(
-                      hintText: '🔒 Password',
+                      prefixIcon: const Icon(Icons.lock_outline, color: textSecondaryColor, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: textSecondaryColor,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      hintText: 'Password',
                       hintStyle: const TextStyle(color: textSecondaryColor),
                       filled: true,
                       fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
@@ -278,7 +325,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _shopNameController,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
-                        hintText: '🏬 Shop / Business Name',
+                        prefixIcon: const Icon(Icons.storefront_outlined, color: textSecondaryColor, size: 20),
+                        hintText: 'Shop / Business Name',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
                         fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
@@ -290,7 +338,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _businessNoController,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
-                        hintText: '📝 Business Registration Number',
+                        prefixIcon: const Icon(Icons.badge_outlined, color: textSecondaryColor, size: 20),
+                        hintText: 'Business Registration Number',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
                         fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
@@ -319,6 +368,14 @@ class _AuthScreenState extends State<AuthScreen> {
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                   ),
+                  if (isLogin) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'Tip: Login as Customer, Seller, or Admin using your credentials.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+                    ),
+                  ],
                 ],
               ),
             ),

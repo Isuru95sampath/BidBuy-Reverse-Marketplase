@@ -140,7 +140,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final descController = TextEditingController();
     final budgetController = TextEditingController();
     String selectedCategory = categories.first;
-    final deadlineController = TextEditingController();
+    final defaultDate = DateTime.now().add(const Duration(days: 7));
+    final deadlineController = TextEditingController(
+      text: "${defaultDate.year}-${defaultDate.month.toString().padLeft(2, '0')}-${defaultDate.day.toString().padLeft(2, '0')}",
+    );
 
     final isDark = themeNotifier.value == ThemeMode.dark;
     final dialogBg = Theme.of(context).cardColor;
@@ -154,7 +157,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             return AlertDialog(
               backgroundColor: dialogBg,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('New Request', style: TextStyle(color: textColor)),
+              title: Row(
+                children: [
+                  const Icon(Icons.add_task, color: primaryColor, size: 24),
+                  const SizedBox(width: 8),
+                  Text('Post New Request', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -163,16 +172,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       controller: titleController,
                       style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
-                        labelText: 'Title',
-                        labelStyle: TextStyle(color: textSecondaryColor),
+                        labelText: 'What do you need? (e.g. iPhone 13, Sofa)',
+                        labelStyle: TextStyle(color: textSecondaryColor, fontSize: 13),
                       ),
                     ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: descController,
+                      maxLines: 2,
                       style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
-                        labelText: 'Description',
-                        labelStyle: TextStyle(color: textSecondaryColor),
+                        labelText: 'Details / Specifications',
+                        labelStyle: TextStyle(color: textSecondaryColor, fontSize: 13),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -195,21 +206,42 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         }
                       },
                     ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: budgetController,
                       keyboardType: TextInputType.number,
                       style: TextStyle(color: textColor),
                       decoration: const InputDecoration(
-                        labelText: 'Budget (Rs.)',
+                        labelText: 'Your Max Budget (Rs.)',
                         labelStyle: TextStyle(color: textSecondaryColor),
+                        prefixText: 'Rs. ',
                       ),
                     ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: deadlineController,
+                      readOnly: true,
                       style: TextStyle(color: textColor),
-                      decoration: const InputDecoration(
-                        labelText: 'Deadline (e.g. YYYY-MM-DD)',
-                        labelStyle: TextStyle(color: textSecondaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Deadline Date',
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today, color: primaryColor, size: 20),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: defaultDate,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setModalState(() {
+                                deadlineController.text =
+                                    "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                              });
+                            }
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -223,23 +255,42 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                   onPressed: () async {
-                    if (titleController.text.isEmpty || budgetController.text.isEmpty) return;
-                    
+                    final title = titleController.text.trim();
+                    final budgetText = budgetController.text.trim();
+
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter what item or service you need')),
+                      );
+                      return;
+                    }
+                    if (budgetText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter your budget amount')),
+                      );
+                      return;
+                    }
+
                     final res = await ApiService.post('/requests', {
                       'customer_id': user!['id'],
-                      'title': titleController.text.trim(),
+                      'title': title,
                       'description': descController.text.trim(),
                       'category': selectedCategory,
-                      'budget': double.tryParse(budgetController.text) ?? 0.0,
+                      'budget': double.tryParse(budgetText) ?? 0.0,
                       'deadline': deadlineController.text.trim(),
                     });
 
                     if (res['statusCode'] == 201) {
                       _fetchRequests();
-                      if (mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Request posted! Local sellers will send you quotes.')),
+                        );
+                      }
                     }
                   },
-                  child: const Text('Submit', style: TextStyle(color: Colors.white)),
+                  child: const Text('Post Request', style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -391,7 +442,25 @@ class _CustomerScreenState extends State<CustomerScreen> {
               child: isLoading && requests.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : filtered.isEmpty
-                      ? const Center(child: Text('No requests found.', style: TextStyle(color: textSecondaryColor)))
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.shopping_bag_outlined, size: 64, color: textSecondaryColor.withOpacity(0.5)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  searchQuery.isNotEmpty || categoryFilter != 'All'
+                                      ? 'No requests found matching your filters.'
+                                      : 'No requests posted yet!\n\nTap "Post Request" below to post what you need and get the best quotes from sellers.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: textSecondaryColor, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: filtered.length,
@@ -507,10 +576,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
         onPressed: _showAddRequestDialog,
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Post Request', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
