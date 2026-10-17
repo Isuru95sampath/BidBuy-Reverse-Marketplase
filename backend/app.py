@@ -30,6 +30,7 @@ def register():
     password = data.get('password')
     role = data.get('role') # 'customer' or 'seller'
     shop_name = data.get('shop_name', '').strip()
+    phone = data.get('phone', '').strip()
 
     hashed_password = generate_password_hash(password)
 
@@ -37,8 +38,8 @@ def register():
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO users (username, password, role, shop_name) VALUES (?, ?, ?, ?)",
-            (username, hashed_password, role, shop_name)
+            "INSERT INTO users (username, password, role, shop_name, phone) VALUES (?, ?, ?, ?, ?)",
+            (username, hashed_password, role, shop_name, phone)
         )
         conn.commit()
         return jsonify({"message": "User registered successfully!"}), 201
@@ -68,7 +69,8 @@ def login():
                 "id": user['id'],
                 "username": user['username'],
                 "role": user['role'],
-                "shop_name": user['shop_name']
+                "shop_name": user['shop_name'],
+                "phone": user['phone'] if 'phone' in user.keys() and user['phone'] else ""
             }
         }), 200
     else:
@@ -89,6 +91,7 @@ def create_request():
     budget = data.get('budget', 0.0)
     category = data.get('category', 'General')
     image = data.get('image', '')
+    phone = data.get('phone', '').strip()
     
     # Expiration calculation
     expiry_hours = data.get('expiry_hours')
@@ -109,8 +112,8 @@ def create_request():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO requests (customer_id, title, description, budget, category, image, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (customer_id, title, description, budget, category, image, expires_at)
+        "INSERT INTO requests (customer_id, title, description, budget, category, image, expires_at, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (customer_id, title, description, budget, category, image, expires_at, phone)
     )
     conn.commit()
     new_id = cursor.lastrowid
@@ -139,6 +142,7 @@ def get_all_requests():
         # Return all requests of this customer
         query = """
             SELECT r.*, u.username as customer_name,
+                   COALESCE(r.phone, u.phone, '') as customer_phone,
                    (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
             FROM requests r
             JOIN users u ON r.customer_id = u.id
@@ -150,6 +154,7 @@ def get_all_requests():
         # Return active requests and join with username of customer
         query = """
             SELECT r.*, u.username as customer_name,
+                   COALESCE(r.phone, u.phone, '') as customer_phone,
                    (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count
             FROM requests r
             JOIN users u ON r.customer_id = u.id
@@ -166,6 +171,7 @@ def get_all_requests():
     for req in requests_list:
         cursor.execute("""
             SELECT b.*, u.username as seller_name, u.shop_name,
+                   COALESCE(b.phone, u.phone, '') as seller_phone,
                    COALESCE((SELECT AVG(rating) FROM reviews WHERE seller_id = b.seller_id), 0.0) as rating,
                    COALESCE((SELECT COUNT(rating) FROM reviews WHERE seller_id = b.seller_id), 0) as rating_count
             FROM bids b
@@ -196,6 +202,7 @@ def get_customer_requests(customer_id):
     
     query = """
         SELECT r.*,
+               COALESCE(r.phone, (SELECT phone FROM users WHERE id = r.customer_id), '') as customer_phone,
                (SELECT COUNT(*) FROM bids b WHERE b.request_id = r.id) as bid_count,
                (SELECT price FROM bids WHERE request_id = r.id AND status = 'accepted' LIMIT 1) as accepted_price
         FROM requests r
@@ -219,6 +226,7 @@ def get_request_bids(request_id):
     cursor = conn.cursor()
     query = """
         SELECT b.*, u.username as seller_name, u.shop_name,
+               COALESCE(b.phone, u.phone, '') as seller_phone,
                COALESCE((SELECT AVG(rating) FROM reviews WHERE seller_id = b.seller_id), 0.0) as avg_rating,
                COALESCE((SELECT COUNT(rating) FROM reviews WHERE seller_id = b.seller_id), 0) as rating_count
         FROM bids b
@@ -242,6 +250,7 @@ def place_bid(request_id):
     price = data.get('price')
     delivery_days = data.get('delivery_days')
     notes = data.get('notes', '')
+    phone = data.get('phone', '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -253,8 +262,8 @@ def place_bid(request_id):
         return jsonify({"error": "This request is no longer accepting bids"}), 400
 
     cursor.execute(
-        "INSERT INTO bids (request_id, seller_id, price, delivery_days, notes) VALUES (?, ?, ?, ?, ?)",
-        (request_id, seller_id, price, delivery_days, notes)
+        "INSERT INTO bids (request_id, seller_id, price, delivery_days, notes, phone) VALUES (?, ?, ?, ?, ?, ?)",
+        (request_id, seller_id, price, delivery_days, notes, phone)
     )
     conn.commit()
     conn.close()
@@ -294,7 +303,9 @@ def get_seller_bids(seller_id):
     cursor = conn.cursor()
     query = """
         SELECT b.*, r.title as request_title, r.budget as target_budget, r.status as request_status,
-               r.category as category, r.customer_id, u.username as customer_username
+               r.category as category, r.image as request_image, r.customer_id, u.username as customer_username,
+               COALESCE(r.phone, u.phone, '') as customer_phone,
+               COALESCE(b.phone, '') as seller_phone
         FROM bids b
         JOIN requests r ON b.request_id = r.id
         JOIN users u ON r.customer_id = u.id
@@ -325,6 +336,7 @@ def place_bid_compat():
     price = data.get('price')
     delivery_days = data.get('delivery_days')
     notes = data.get('notes', '')
+    phone = data.get('phone', '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -335,8 +347,8 @@ def place_bid_compat():
             return jsonify({"error": "This request is no longer accepting bids"}), 400
 
         cursor.execute(
-            "INSERT INTO bids (request_id, seller_id, price, delivery_days, notes) VALUES (?, ?, ?, ?, ?)",
-            (request_id, seller_id, price, delivery_days, notes)
+            "INSERT INTO bids (request_id, seller_id, price, delivery_days, notes, phone) VALUES (?, ?, ?, ?, ?, ?)",
+            (request_id, seller_id, price, delivery_days, notes, phone)
         )
         conn.commit()
         return jsonify({"message": "Bid submitted successfully"}), 201

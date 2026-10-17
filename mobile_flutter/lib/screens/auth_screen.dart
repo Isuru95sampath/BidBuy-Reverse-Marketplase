@@ -20,6 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _businessNoController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   
   bool isLoading = false;
 
@@ -93,6 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
         'username': username,
         'password': password,
         'role': role,
+        'phone': _phoneController.text.trim(),
       };
       if (role == 'seller') {
         payload['shop_name'] = shopName;
@@ -321,6 +323,24 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Phone Number Input (Registration only)
+                  if (!isLogin) ...[
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.phone_outlined, color: textSecondaryColor, size: 20),
+                        hintText: 'Phone Number (e.g. 0771234567)',
+                        hintStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Seller Specific Inputs
                   if (!isLogin && role == 'seller') ...[

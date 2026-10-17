@@ -88,13 +88,24 @@ def init_db():
         )
     ''')
 
-    # Alter tables to add new columns if they do not exist (for backward compatibility)
     try:
         cursor.execute("ALTER TABLE requests ADD COLUMN expires_at TIMESTAMP")
     except sqlite3.OperationalError:
         pass
     try:
         cursor.execute("ALTER TABLE messages ADD COLUMN image_attachment TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE requests ADD COLUMN phone TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE bids ADD COLUMN phone TEXT")
     except sqlite3.OperationalError:
         pass
 

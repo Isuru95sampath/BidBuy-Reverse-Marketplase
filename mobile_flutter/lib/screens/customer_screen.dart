@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import 'chat_screen.dart';
 
 class CustomerScreen extends StatefulWidget {
   const CustomerScreen({super.key});
@@ -29,6 +30,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
     'Electronics', 'Clothing & Fashion', 'Furniture & Home', 'Books & Education',
     'Groceries', 'Toys & Hobbies', 'Sports & Outdoors', 'Automotive', 'Health & Beauty'
   ];
+
+  final Map<String, String> categorySampleImages = {
+    'Electronics': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500',
+    'Clothing & Fashion': 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=500',
+    'Furniture & Home': 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500',
+    'Books & Education': 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500',
+    'Groceries': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500',
+    'Toys & Hobbies': 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500',
+    'Sports & Outdoors': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500',
+    'Automotive': 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=500',
+    'Health & Beauty': 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500',
+  };
 
   @override
   void initState() {
@@ -82,7 +95,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
     if (res['statusCode'] == 200) {
       final List newRequests = res['data'] as List? ?? [];
       
-      // Calculate total bids count
       int newBidsCount = 0;
       for (var req in newRequests) {
         final bidsList = req['bids'] as List? ?? [];
@@ -121,9 +133,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
   Future<void> _playNotificationSound() async {
     try {
       await _audioPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'));
-    } catch (e) {
-      // Audio playback failed
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleLogout() async {
@@ -139,7 +149,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final titleController = TextEditingController();
     final descController = TextEditingController();
     final budgetController = TextEditingController();
+    final imageController = TextEditingController();
+    final phoneController = TextEditingController(text: user?['phone'] ?? '');
+
     String selectedCategory = categories.first;
+    imageController.text = categorySampleImages[selectedCategory] ?? '';
+
     final defaultDate = DateTime.now().add(const Duration(days: 7));
     final deadlineController = TextEditingController(
       text: "${defaultDate.year}-${defaultDate.month.toString().padLeft(2, '0')}-${defaultDate.day.toString().padLeft(2, '0')}",
@@ -167,6 +182,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: titleController,
@@ -202,6 +218,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         if (val != null) {
                           setModalState(() {
                             selectedCategory = val;
+                            imageController.text = categorySampleImages[val] ?? '';
                           });
                         }
                       },
@@ -215,6 +232,17 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         labelText: 'Your Max Budget (Rs.)',
                         labelStyle: TextStyle(color: textSecondaryColor),
                         prefixText: 'Rs. ',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: TextStyle(color: textColor),
+                      decoration: const InputDecoration(
+                        labelText: 'Contact Phone Number',
+                        labelStyle: TextStyle(color: textSecondaryColor),
+                        prefixIcon: Icon(Icons.phone_outlined, size: 18, color: primaryColor),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -244,6 +272,41 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Item Image (Paste URL or Pick Category Preset):',
+                      style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: imageController,
+                      style: TextStyle(color: textColor, fontSize: 12),
+                      decoration: const InputDecoration(
+                        hintText: 'https://... image link',
+                        hintStyle: TextStyle(color: textSecondaryColor),
+                        prefixIcon: Icon(Icons.image_outlined, size: 18, color: primaryColor),
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    if (imageController.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          imageController.text.trim(),
+                          height: 100,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            height: 60,
+                            color: Colors.grey.withOpacity(0.2),
+                            child: const Center(
+                              child: Text('Invalid image link', style: TextStyle(color: textSecondaryColor, fontSize: 11)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -278,6 +341,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       'category': selectedCategory,
                       'budget': double.tryParse(budgetText) ?? 0.0,
                       'deadline': deadlineController.text.trim(),
+                      'image': imageController.text.trim(),
+                      'phone': phoneController.text.trim(),
                     });
 
                     if (res['statusCode'] == 201) {
@@ -345,7 +410,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Customer Dashboard',
+              'Customer Hub',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -385,9 +450,91 @@ class _CustomerScreenState extends State<CustomerScreen> {
         onRefresh: _fetchRequests,
         child: Column(
           children: [
+            // Beautiful Header Image / Hero Banner
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3B82F6).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, ${user?['username'] ?? 'Customer'}! 👋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Post what you want to buy — verified sellers will compete to give you their lowest price!',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '📦 ${requests.length} Requests',
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '🏷️ $_totalBidsCount Quotes',
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 36),
+                  ),
+                ],
+              ),
+            ),
+
             // Search Input
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
@@ -404,6 +551,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 },
               ),
             ),
+            const SizedBox(height: 10),
 
             // Horizontal Category Filters
             SizedBox(
@@ -435,7 +583,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Main Requests list
             Expanded(
@@ -468,106 +616,200 @@ class _CustomerScreenState extends State<CustomerScreen> {
                             final req = filtered[index];
                             final bids = req['bids'] as List? ?? [];
                             final isPending = req['status'] == 'pending' || req['status'] == 'active';
+                            final hasImage = req['image'] != null && req['image'].toString().trim().isNotEmpty;
+                            final phone = req['customer_phone'] ?? '';
 
                             return Card(
                               color: Theme.of(context).cardColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               margin: const EdgeInsets.only(bottom: 16),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              elevation: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Item Image Preview (if present)
+                                  if (hasImage)
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                                      child: Image.network(
+                                        req['image'],
+                                        height: 150,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                      ),
+                                    ),
+
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          req['title'] ?? 'Request',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : Colors.black87,
-                                          ),
-                                        ),
-                                        Chip(
-                                          label: Text(
-                                            req['category'] ?? 'General',
-                                            style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.black87),
-                                          ),
-                                          backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[200],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      req['description'] ?? '',
-                                      style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[800]),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('💰 Budget: Rs. ${(req['budget'] ?? 0).toString()}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-                                        Text(
-                                          '📅 Deadline: ${req['deadline'] ?? 'No Expiry'}',
-                                          style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 11),
-                                        ),
-                                      ],
-                                    ),
-                                    Divider(color: isDark ? const Color(0xFF0F172A) : Colors.grey[200], height: 24),
-                                    Text(
-                                      'Quotes received (${bids.length})',
-                                      style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...bids.map((bid) {
-                                      final isAccepted = bid['status'] == 'accepted';
-                                      return Container(
-                                        padding: const EdgeInsets.all(10),
-                                        margin: const EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
+                                        Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  bid['shop_name'] ?? 'Shop',
-                                                  style: TextStyle(
-                                                    color: isDark ? Colors.white : Colors.black87,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                            Expanded(
+                                              child: Text(
+                                                req['title'] ?? 'Request',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark ? Colors.white : Colors.black87,
                                                 ),
-                                                Text(
-                                                  'Delivery: ${bid['delivery_days'] ?? 1} days | Rating: ⭐ ${bid['rating'] ?? 5.0}',
-                                                  style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 10),
-                                                ),
-                                              ],
+                                              ),
                                             ),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
-                                              children: [
-                                                Text('Rs. ${bid['price'] ?? 0}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-                                                if (isPending && bid['status'] != 'accepted')
-                                                  ElevatedButton(
-                                                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
-                                                    onPressed: () => _handleAcceptBid(bid['id'], double.tryParse(bid['price'].toString()) ?? 0.0),
-                                                    child: const Text('Accept', style: TextStyle(fontSize: 10, color: Colors.white)),
-                                                  )
-                                                else if (isAccepted)
-                                                  const Text('ACCEPTED', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 10)),
-                                              ],
+                                            Chip(
+                                              label: Text(
+                                                req['category'] ?? 'General',
+                                                style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.black87),
+                                              ),
+                                              backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[200],
                                             ),
                                           ],
                                         ),
-                                      );
-                                    }),
-                                  ],
-                                ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          req['description'] ?? '',
+                                          style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[800]),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('💰 Budget: Rs. ${(req['budget'] ?? 0).toString()}', style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                                            Text(
+                                              '📅 Deadline: ${req['deadline'] ?? 'No Expiry'}',
+                                              style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                        if (phone.toString().isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.phone, size: 14, color: primaryColor),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'My Phone: $phone',
+                                                style: const TextStyle(fontSize: 11, color: primaryColor, fontWeight: FontWeight.w600),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                        Divider(color: isDark ? const Color(0xFF0F172A) : Colors.grey[200], height: 24),
+                                        Text(
+                                          'Quotes received (${bids.length})',
+                                          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        ...bids.map((bid) {
+                                          final isAccepted = bid['status'] == 'accepted';
+                                          final sellerPhone = bid['seller_phone'] ?? '';
+
+                                          return Container(
+                                            padding: const EdgeInsets.all(12),
+                                            margin: const EdgeInsets.only(bottom: 8),
+                                            decoration: BoxDecoration(
+                                              color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: isAccepted ? accentColor : Colors.transparent,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            bid['shop_name'] ?? 'Shop',
+                                                            style: TextStyle(
+                                                              color: isDark ? Colors.white : Colors.black87,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            'Delivery: ${bid['delivery_days'] ?? 1} days | ⭐ ${bid['rating'] ?? 5.0}',
+                                                            style: TextStyle(color: isDark ? textSecondaryColor : Colors.grey[600], fontSize: 11),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      'Rs. ${bid['price'] ?? 0}',
+                                                      style: const TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 16),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    // Chat with Seller Button
+                                                    OutlinedButton.icon(
+                                                      style: OutlinedButton.styleFrom(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                        side: const BorderSide(color: primaryColor),
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                      ),
+                                                      icon: const Icon(Icons.chat_outlined, size: 14, color: primaryColor),
+                                                      label: const Text('💬 Message', style: TextStyle(fontSize: 11, color: primaryColor)),
+                                                      onPressed: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (_) => ChatScreen(
+                                                              requestId: req['id'],
+                                                              requestTitle: req['title'] ?? 'Request',
+                                                              currentUser: user!,
+                                                              peerUser: {
+                                                                'id': bid['seller_id'],
+                                                                'username': bid['seller_name'] ?? 'Seller',
+                                                                'shop_name': bid['shop_name'] ?? '',
+                                                                'phone': sellerPhone,
+                                                                'role': 'seller',
+                                                              },
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+
+                                                    if (isPending && bid['status'] != 'accepted')
+                                                      ElevatedButton(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: primaryColor,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                        ),
+                                                        onPressed: () => _handleAcceptBid(bid['id'], double.tryParse(bid['price'].toString()) ?? 0.0),
+                                                        child: const Text('Accept Deal', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                                                      )
+                                                    else if (isAccepted)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: accentColor.withOpacity(0.2),
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: const Text('✅ ACCEPTED', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 11)),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           },
