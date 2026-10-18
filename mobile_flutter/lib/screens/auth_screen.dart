@@ -18,10 +18,24 @@ class _AuthScreenState extends State<AuthScreen> {
   
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _businessNoController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   
+  String _selectedCategory = 'Electronics';
+  final List<String> _categories = [
+    'Electronics',
+    'Clothing & Fashion',
+    'Furniture & Home',
+    'Books & Education',
+    'Groceries',
+    'Toys & Hobbies',
+    'Sports & Outdoors',
+    'Automotive',
+    'Health & Beauty',
+  ];
+
   bool isLoading = false;
 
   void toggleView() {
@@ -30,11 +44,19 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  bool _isValidPhone(String phone) {
+    final clean = phone.replaceAll(RegExp(r'[\s\-]'), '');
+    final regex = RegExp(r'^(?:\+?94|0)?[0-9]{9,10}$');
+    return clean.length >= 9 && clean.length <= 12 && regex.hasMatch(clean);
+  }
+
   Future<void> handleSubmit() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
+    final fullName = _fullNameController.text.trim();
     final shopName = _shopNameController.text.trim();
     final businessNo = _businessNoController.text.trim();
+    final phone = _phoneController.text.trim();
 
     if (username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,11 +70,29 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       return;
     }
-    if (!isLogin && role == 'seller' && shopName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your shop or business name')),
-      );
-      return;
+
+    if (!isLogin) {
+      if (phone.isEmpty || !_isValidPhone(phone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid 10-digit mobile number (e.g. 0771234567)')),
+        );
+        return;
+      }
+
+      if (role == 'seller') {
+        if (fullName.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter your full name / owner name')),
+          );
+          return;
+        }
+        if (shopName.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter your shop or business name')),
+          );
+          return;
+        }
+      }
     }
 
     setState(() {
@@ -94,11 +134,13 @@ class _AuthScreenState extends State<AuthScreen> {
         'username': username,
         'password': password,
         'role': role,
-        'phone': _phoneController.text.trim(),
+        'phone': phone,
+        'full_name': fullName,
       };
       if (role == 'seller') {
         payload['shop_name'] = shopName;
         payload['business_no'] = businessNo;
+        payload['category'] = _selectedCategory;
       }
 
       final res = await ApiService.post('/auth/register', payload);
@@ -353,15 +395,28 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Phone Number Input (Registration only)
+                  // Registration Fields (Name & Phone)
                   if (!isLogin) ...[
+                    TextField(
+                      controller: _fullNameController,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.badge_outlined, color: textSecondaryColor, size: 20),
+                        hintText: role == 'seller' ? 'Owner / Contact Full Name' : 'Full Name (e.g. John Silva)',
+                        hintStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.phone_outlined, color: textSecondaryColor, size: 20),
-                        hintText: 'Phone Number (e.g. 0771234567)',
+                        hintText: 'Valid Phone Number (e.g. 0771234567)',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
                         fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
@@ -386,12 +441,40 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // Business Category Selection Dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.category_outlined, color: textSecondaryColor, size: 20),
+                        labelText: 'Your Business Category',
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                      items: _categories.map((cat) {
+                        return DropdownMenuItem<String>(
+                          value: cat,
+                          child: Text(cat, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedCategory = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _businessNoController,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.badge_outlined, color: textSecondaryColor, size: 20),
-                        hintText: 'Business Registration Number',
+                        prefixIcon: const Icon(Icons.description_outlined, color: textSecondaryColor, size: 20),
+                        hintText: 'Business Reg No. (Optional)',
                         hintStyle: const TextStyle(color: textSecondaryColor),
                         filled: true,
                         fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],

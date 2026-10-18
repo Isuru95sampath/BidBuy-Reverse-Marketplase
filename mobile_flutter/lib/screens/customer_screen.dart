@@ -24,6 +24,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   Timer? _timer;
   int _totalBidsCount = 0;
+  int _totalMessagesCount = -1;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   final List<String> categories = [
@@ -64,6 +65,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         user = jsonDecode(userStr);
       });
       await _fetchRequests(initial: true);
+      await _fetchNotifications(initial: true);
       _startTimer();
     }
   }
@@ -77,6 +79,60 @@ class _CustomerScreenState extends State<CustomerScreen> {
   Future<void> _pollRequests() async {
     if (!mounted) return;
     await _fetchRequests();
+    await _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications({bool initial = false}) async {
+    if (user == null) return;
+    try {
+      final res = await ApiService.get('/notifications?user_id=${user!['id']}&role=customer');
+      if (res['statusCode'] == 200 && res['data'] != null) {
+        final data = res['data'];
+        final totalMessages = data['total_messages'] as int? ?? 0;
+        final latestMsg = data['latest_message'] as Map<String, dynamic>?;
+
+        if (!initial && _totalMessagesCount != -1 && totalMessages > _totalMessagesCount && latestMsg != null) {
+          _playNotificationSound();
+          if (mounted) {
+            final sender = latestMsg['sender_name']?.toString() ?? 'Seller';
+            final text = (latestMsg['message'] != null && latestMsg['message'].toString().isNotEmpty)
+                ? latestMsg['message'].toString()
+                : 'Sent an image attachment';
+            final reqTitle = latestMsg['request_title']?.toString() ?? 'your request';
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('💬 $sender: "$text"'),
+                backgroundColor: primaryColor,
+                duration: const Duration(seconds: 6),
+                action: SnackBarAction(
+                  label: 'Open Chat',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          requestId: latestMsg['request_id'] as int,
+                          requestTitle: reqTitle,
+                          currentUser: user!,
+                          peerUser: {
+                            'id': latestMsg['sender_id'],
+                            'username': sender,
+                            'role': 'seller',
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+        }
+        _totalMessagesCount = totalMessages;
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchRequests({bool initial = false}) async {

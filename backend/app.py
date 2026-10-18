@@ -31,6 +31,8 @@ def register():
     role = data.get('role') # 'customer' or 'seller'
     shop_name = data.get('shop_name', '').strip()
     phone = data.get('phone', '').strip()
+    category = data.get('category', '').strip()
+    full_name = data.get('full_name', '').strip()
 
     hashed_password = generate_password_hash(password)
 
@@ -38,8 +40,8 @@ def register():
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO users (username, password, role, shop_name, phone) VALUES (?, ?, ?, ?, ?)",
-            (username, hashed_password, role, shop_name, phone)
+            "INSERT INTO users (username, password, role, shop_name, phone, category, full_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (username, hashed_password, role, shop_name, phone, category, full_name)
         )
         conn.commit()
         return jsonify({"message": "User registered successfully!"}), 201
@@ -63,14 +65,17 @@ def login():
     conn.close()
 
     if user and check_password_hash(user['password'], password):
+        user_dict = dict(user)
         return jsonify({
             "message": "Login successful",
             "user": {
-                "id": user['id'],
-                "username": user['username'],
-                "role": user['role'],
-                "shop_name": user['shop_name'],
-                "phone": user['phone'] if 'phone' in user.keys() and user['phone'] else ""
+                "id": user_dict['id'],
+                "username": user_dict['username'],
+                "role": user_dict['role'],
+                "shop_name": user_dict.get('shop_name') or "",
+                "full_name": user_dict.get('full_name') or "",
+                "category": user_dict.get('category') or "",
+                "phone": user_dict.get('phone') or ""
             }
         }), 200
     else:
@@ -435,6 +440,64 @@ def get_chat():
     messages_list = [dict(row) for row in rows]
     return jsonify(messages_list), 200
 
+@app.route('/api/notifications', methods=['GET'])
+def get_user_notifications():
+    user_id = request.args.get('user_id', type=int)
+    role = request.args.get('role', default='')
+    
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Check latest messages for this user
+        latest_msg_row = cursor.execute("""
+            SELECT m.*, u.username as sender_name, r.title as request_title
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            JOIN requests r ON m.request_id = r.id
+            WHERE m.receiver_id = ?
+            ORDER BY m.id DESC LIMIT 1
+        """, (user_id,)).fetchone()
+        
+        latest_message = dict(latest_msg_row) if latest_msg_row else None
+        total_messages_received = cursor.execute(
+            "SELECT COUNT(*) FROM messages WHERE receiver_id = ?", (user_id,)
+        ).fetchone()[0]
+        
+        result = {
+            "total_messages": total_messages_received,
+            "latest_message": latest_message
+        }
+        
+        if role == 'seller':
+            accepted_count = cursor.execute(
+                "SELECT COUNT(*) FROM bids WHERE seller_id = ? AND status = 'accepted'", (user_id,)
+            ).fetchone()[0]
+            
+            active_reqs_count = cursor.execute(
+                "SELECT COUNT(*) FROM requests WHERE status = 'active'"
+            ).fetchone()[0]
+            
+            result["accepted_bids_count"] = accepted_count
+            result["active_requests_count"] = active_reqs_count
+            
+        elif role == 'customer':
+            bids_count = cursor.execute("""
+                SELECT COUNT(b.id) 
+                FROM bids b
+                JOIN requests r ON b.request_id = r.id
+                WHERE r.customer_id = ? AND r.status = 'active'
+            """, (user_id,)).fetchone()[0]
+            
+            result["total_quotes_received"] = bids_count
+            
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 # --- STATS, REVIEWS & RATINGS ROUTES ---
 

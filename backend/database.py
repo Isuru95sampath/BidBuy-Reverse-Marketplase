@@ -101,6 +101,14 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     try:
+        cursor.execute("ALTER TABLE users ADD COLUMN category TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
         cursor.execute("ALTER TABLE requests ADD COLUMN phone TEXT")
     except sqlite3.OperationalError:
         pass
