@@ -192,27 +192,29 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 60,
-                      height: 60,
+                      width: 72,
+                      height: 72,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF10B981)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: primaryColor.withOpacity(0.3),
-                            blurRadius: 12,
+                            color: const Color(0xFF00E5CC).withOpacity(0.3),
+                            blurRadius: 14,
                             offset: const Offset(0, 4),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withOpacity(0.25),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Colors.white,
-                        size: 32,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ),

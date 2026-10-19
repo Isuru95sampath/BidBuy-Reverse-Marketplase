@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'constants.dart';
+import 'screens/splash_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/customer_screen.dart';
 import 'screens/seller_screen.dart';
@@ -59,8 +60,9 @@ class MyApp extends StatelessWidget {
               elevation: 0,
             ),
           ),
-          home: const HomeScreenRouter(),
+          home: const SplashScreen(),
           routes: {
+            '/splash': (context) => const SplashScreen(),
             '/auth': (context) => const AuthScreen(),
             '/home': (context) => const HomeScreenRouter(),
           },
