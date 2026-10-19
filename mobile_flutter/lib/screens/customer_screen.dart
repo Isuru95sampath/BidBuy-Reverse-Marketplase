@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:image_picker/image_picker.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 
 class CustomerScreen extends StatefulWidget {
@@ -329,38 +331,136 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Text(
-                      'Item Image (Paste URL or Pick Category Preset):',
-                      style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.bold),
+                      'Item Photo / Reference Image:',
+                      style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: imageController,
-                      style: TextStyle(color: textColor, fontSize: 12),
-                      decoration: const InputDecoration(
-                        hintText: 'https://... image link',
-                        hintStyle: TextStyle(color: textSecondaryColor),
-                        prefixIcon: Icon(Icons.image_outlined, size: 18, color: primaryColor),
-                      ),
-                      onChanged: (_) => setModalState(() {}),
-                    ),
-                    if (imageController.text.trim().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          imageController.text.trim(),
-                          height: 100,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            height: 60,
-                            color: Colors.grey.withOpacity(0.2),
-                            child: const Center(
-                              child: Text('Invalid image link', style: TextStyle(color: textSecondaryColor, fontSize: 11)),
+                    const SizedBox(height: 8),
+
+                    // Gallery & Camera Pick Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor.withOpacity(0.12),
+                              foregroundColor: primaryColor,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: const BorderSide(color: primaryColor),
+                              ),
                             ),
+                            icon: const Icon(Icons.photo_library_rounded, size: 20),
+                            label: const Text('From Gallery', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                  maxWidth: 900,
+                                  maxHeight: 900,
+                                  imageQuality: 75,
+                                );
+                                if (picked != null) {
+                                  final bytes = await picked.readAsBytes();
+                                  setModalState(() {
+                                    imageController.text = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                                  });
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Could not access gallery: $e')),
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isDark ? Colors.white : Colors.black87,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.camera_alt_rounded, size: 20),
+                            label: const Text('Camera'),
+                            onPressed: () async {
+                              try {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                  maxWidth: 900,
+                                  maxHeight: 900,
+                                  imageQuality: 75,
+                                );
+                                if (picked != null) {
+                                  final bytes = await picked.readAsBytes();
+                                  setModalState(() {
+                                    imageController.text = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                                  });
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Could not access camera: $e')),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (imageController.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 140,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: primaryColor.withOpacity(0.5), width: 1.5),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(9),
+                              child: AppImage(
+                                imageSource: imageController.text.trim(),
+                                height: 140,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: InkWell(
+                              onTap: () {
+                                setModalState(() {
+                                  imageController.clear();
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ],
@@ -685,15 +785,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                 children: [
                                   // Item Image Preview (if present)
                                   if (hasImage)
-                                    ClipRRect(
+                                    AppImage(
+                                      imageSource: req['image'],
+                                      height: 160,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
                                       borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                                      child: Image.network(
-                                        req['image'],
-                                        height: 150,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                      ),
                                     ),
 
                                   Padding(

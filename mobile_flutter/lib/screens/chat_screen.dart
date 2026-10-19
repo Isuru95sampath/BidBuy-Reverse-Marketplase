@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:image_picker/image_picker.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import '../widgets/app_image.dart';
 
 class ChatScreen extends StatefulWidget {
   final int requestId;
@@ -110,9 +113,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage({String? imageAttachment}) async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && (imageAttachment == null || imageAttachment.isEmpty)) return;
 
     _messageController.clear();
 
@@ -121,6 +124,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'sender_id': widget.currentUser['id'],
       'receiver_id': widget.peerUser['id'],
       'message': text,
+      'image_attachment': imageAttachment ?? '',
     };
 
     final res = await ApiService.post('/messages', payload);
@@ -131,6 +135,29 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to send message. Please retry.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 850,
+        maxHeight: 850,
+        imageQuality: 75,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        await _sendMessage(imageAttachment: base64Image);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not access gallery: $e')),
         );
       }
     }
@@ -304,15 +331,30 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ),
                                       ),
                                     ),
-                                  Text(
-                                    msg['message'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: isMe
-                                          ? Colors.white
-                                          : (isDark ? Colors.white : Colors.black87),
+                                  // Optional Image Attachment
+                                  if (msg['image_attachment'] != null &&
+                                      msg['image_attachment'].toString().trim().isNotEmpty) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: AppImage(
+                                        imageSource: msg['image_attachment'],
+                                        width: 220,
+                                        height: 150,
+                                        fit: BoxFit.cover,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
-                                  ),
+                                  ],
+                                  if ((msg['message'] ?? '').toString().trim().isNotEmpty)
+                                    Text(
+                                      msg['message'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isMe
+                                            ? Colors.white
+                                            : (isDark ? Colors.white : Colors.black87),
+                                      ),
+                                    ),
                                   const SizedBox(height: 4),
                                   Text(
                                     msg['created_at'] != null && msg['created_at'].toString().length >= 16
@@ -333,7 +375,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Message Input Field
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : Colors.white,
               border: Border(
@@ -345,6 +387,11 @@ class _ChatScreenState extends State<ChatScreen> {
             child: SafeArea(
               child: Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.photo_library_outlined, color: primaryColor, size: 22),
+                    tooltip: 'Send Image from Gallery',
+                    onPressed: () => _pickAndSendImage(ImageSource.gallery),
+                  ),
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -368,7 +415,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   InkWell(
-                    onTap: _sendMessage,
+                    onTap: () => _sendMessage(),
                     borderRadius: BorderRadius.circular(24),
                     child: CircleAvatar(
                       radius: 20,

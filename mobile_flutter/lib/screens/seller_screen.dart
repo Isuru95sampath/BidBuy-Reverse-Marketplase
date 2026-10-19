@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 
 class SellerScreen extends StatefulWidget {
@@ -617,15 +618,12 @@ class _SellerScreenState extends State<SellerScreen> {
                                   children: [
                                     // Item Image Preview (if present)
                                     if (hasImage)
-                                      ClipRRect(
+                                      AppImage(
+                                        imageSource: req['image'],
+                                        height: 160,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
                                         borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                                        child: Image.network(
-                                          req['image'],
-                                          height: 150,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                        ),
                                       ),
 
                                     Padding(
