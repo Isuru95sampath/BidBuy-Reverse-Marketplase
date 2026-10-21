@@ -6,6 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 
@@ -94,14 +95,22 @@ class _CustomerScreenState extends State<CustomerScreen> {
         final latestMsg = data['latest_message'] as Map<String, dynamic>?;
 
         if (!initial && _totalMessagesCount != -1 && totalMessages > _totalMessagesCount && latestMsg != null) {
+          final sender = latestMsg['sender_name']?.toString() ?? 'Seller';
+          final text = (latestMsg['message'] != null && latestMsg['message'].toString().isNotEmpty)
+              ? latestMsg['message'].toString()
+              : 'Sent an image attachment';
+          final reqTitle = latestMsg['request_title']?.toString() ?? 'your request';
+
+          // Trigger Native Android Heads-Up Notification with sound & vibration
+          NotificationService().showMessageNotification(
+            senderName: sender,
+            message: text,
+            requestId: latestMsg['request_id'] as int?,
+            senderId: latestMsg['sender_id'] as int?,
+          );
+
           _playNotificationSound();
           if (mounted) {
-            final sender = latestMsg['sender_name']?.toString() ?? 'Seller';
-            final text = (latestMsg['message'] != null && latestMsg['message'].toString().isNotEmpty)
-                ? latestMsg['message'].toString()
-                : 'Sent an image attachment';
-            final reqTitle = latestMsg['request_title']?.toString() ?? 'your request';
-
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('💬 $sender: "$text"'),
@@ -160,13 +169,33 @@ class _CustomerScreenState extends State<CustomerScreen> {
       }
 
       if (!initial && newBidsCount > _totalBidsCount) {
+        String reqTitle = 'your item';
+        num quotePrice = 0;
+        String sellerName = 'A verified seller';
+        for (var req in newRequests) {
+          final bidsList = req['bids'] as List? ?? [];
+          if (bidsList.isNotEmpty) {
+            reqTitle = req['title'] ?? 'your item';
+            quotePrice = bidsList.last['price'] ?? 0;
+            sellerName = bidsList.last['seller_name'] ?? 'A verified seller';
+            break;
+          }
+        }
+
+        // Trigger Native Android Heads-Up Notification with sound & vibration
+        NotificationService().showQuoteNotification(
+          requestTitle: reqTitle,
+          sellerName: sellerName,
+          price: quotePrice,
+        );
+
         _playNotificationSound();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🔔 New quote received for your request! Check it out.'),
+            SnackBar(
+              content: Text('🔔 New quote of Rs. ${quotePrice.toStringAsFixed(0)} received for "$reqTitle"!'),
               backgroundColor: primaryColor,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 5),
             ),
           );
         }

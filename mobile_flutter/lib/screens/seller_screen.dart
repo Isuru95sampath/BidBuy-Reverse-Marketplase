@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/app_image.dart';
 import 'chat_screen.dart';
 
@@ -83,14 +84,22 @@ class _SellerScreenState extends State<SellerScreen> {
         final latestMsg = data['latest_message'] as Map<String, dynamic>?;
 
         if (!initial && _totalMessagesCount != -1 && totalMessages > _totalMessagesCount && latestMsg != null) {
+          final sender = latestMsg['sender_name']?.toString() ?? 'Customer';
+          final text = (latestMsg['message'] != null && latestMsg['message'].toString().isNotEmpty)
+              ? latestMsg['message'].toString()
+              : 'Sent an image attachment';
+          final reqTitle = latestMsg['request_title']?.toString() ?? 'item request';
+
+          // Native Android Notification with Sound & Vibration
+          NotificationService().showMessageNotification(
+            senderName: sender,
+            message: text,
+            requestId: latestMsg['request_id'] as int?,
+            senderId: latestMsg['sender_id'] as int?,
+          );
+
           _playNotificationSound();
           if (mounted) {
-            final sender = latestMsg['sender_name']?.toString() ?? 'Customer';
-            final text = (latestMsg['message'] != null && latestMsg['message'].toString().isNotEmpty)
-                ? latestMsg['message'].toString()
-                : 'Sent an image attachment';
-            final reqTitle = latestMsg['request_title']?.toString() ?? 'item request';
-
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('💬 $sender: "$text"'),
@@ -150,12 +159,22 @@ class _SellerScreenState extends State<SellerScreen> {
       if (!initial && _knownRequestIds.isNotEmpty) {
         final newItems = newBrowse.where((r) => !_knownRequestIds.contains(r['id'])).toList();
         if (newItems.isNotEmpty) {
+          final firstNew = newItems.first;
+          final itemTitle = firstNew['title'] ?? 'item';
+          final itemCat = firstNew['category'] ?? 'General';
+
+          // Native Android Notification with Sound & Vibration
+          NotificationService().showNewDemandNotification(
+            requestTitle: itemTitle,
+            category: itemCat,
+            requestId: firstNew['id'] as int?,
+          );
+
           _playNotificationSound();
           if (mounted) {
-            final firstNew = newItems.first;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('🔔 New Demand Alert: A customer is looking for "${firstNew['title']}" (${firstNew['category'] ?? 'General'})!'),
+                content: Text('🔔 New Demand Alert: A customer is looking for "$itemTitle" ($itemCat)!'),
                 backgroundColor: primaryColor,
                 duration: const Duration(seconds: 5),
               ),
@@ -186,20 +205,27 @@ class _SellerScreenState extends State<SellerScreen> {
       final List newBids = bidsRes['data'] as List? ?? [];
       
       int newAcceptedCount = 0;
+      String acceptedTitle = 'your quote';
       for (var bid in newBids) {
         if (bid['status'] == 'accepted') {
           newAcceptedCount++;
+          acceptedTitle = bid['request_title'] ?? 'your quote';
         }
       }
 
       if (!initial && newAcceptedCount > _acceptedBidsCount) {
+        // Native Android Notification with Sound & Vibration
+        NotificationService().showDealAcceptedNotification(
+          requestTitle: acceptedTitle,
+        );
+
         _playNotificationSound();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎉 Congratulations! Your bid has been ACCEPTED by the customer!'),
+            SnackBar(
+              content: Text('🎉 Congratulations! Your quote for "$acceptedTitle" was ACCEPTED!'),
               backgroundColor: accentColor,
-              duration: Duration(seconds: 5),
+              duration: const Duration(seconds: 6),
             ),
           );
         }
